@@ -1,0 +1,503 @@
+/*
+ Project:   AvnavOchartsProvider GUI
+ Function:  App styles
+
+ The MIT License (MIT)
+
+ Copyright (c) 2020 Andreas Vogel (andreas@wellenvogel.net)
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ */
+
+
+@import "flexbox";
+@import "defines";
+
+
+
+
+html, body, #root, .main {
+  height:100%;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  overflow: hidden;
+  font-family: "Roboto","Times New Roman";
+}
+
+.main{
+  .flex-display();
+  .flex-direction(column);
+}
+/* view is the real container for the header and content */
+.view{
+  .flex-display();
+  .flex-direction(column);
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+
+
+.content{
+  .flex(1);
+}
+
+.mainBackColor{
+  background-color: @mainColor;
+}
+.mainColor{
+  color: @mainColor;
+}
+
+.iconColor{
+  color: @mainColor;
+}
+
+button.fab{
+  background-color: @mainColor;
+  .iconColor{
+    color: white;
+  }
+}
+
+.spacer{
+  .flex(1);
+}
+
+.dimmed{
+  opacity: 0.6;
+}
+
+.tabBar{
+  font-size: 1em;
+  .flex-display();
+  .flex-direction(row);
+  @media(max-width: @small) {
+    .flex-direction(column);
+  }
+  .flex-shrink(0);
+  div{
+    .flex(1);
+    text-align: center;
+    padding: 1em;
+    background-color: @mainColorDimmed;
+    border-right: 1px solid black;
+    color: white;
+    &.active{
+      background-color: @mainColorDimmed1;
+    }
+  }
+}
+
+.titleBar{
+  .flex-display();
+  .flex-direction(column);
+  .flex-shrink(0);
+  text-align: center;
+  background-color: @mainColor;
+  color: white;
+  padding: 0.8em;
+  .title {
+    font-size: 1.5em;
+    .flex(1);
+  }
+  .version{
+    .flex(1);
+  }
+}
+
+.errorDisplay{
+  height: auto;
+  position: fixed;
+  left: 50px;
+  bottom: 10px;
+  background-color: #383838;
+  color: #F0F0F0;
+  font-size: 1.5em;
+  padding: 1em;
+  text-align: center;
+  border-radius: 2px;
+  -webkit-box-shadow: 0px 0px 24px -1px #383838;
+  -moz-box-shadow: 0px 0px 24px -1px #383838;
+  box-shadow: 0px 0px 24px -1px #383838;
+  z-index: 9999;
+}
+.scrollList{
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.icon {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.bottomBorder{
+  border-bottom: 1px solid #78797882;
+
+}
+
+
+.statusItem {
+  overflow: hidden;
+  position: relative;
+  .bottomBorder();
+  padding: 1em;
+  .flex-display();
+  .flex-direction(column);
+  .flex-shrink(0);
+  margin-top: 5px;
+  line-height: 2em;
+  .title{
+    span.primary {
+      width: 12em;
+      display: inline-block;
+      @media(max-width: @small){
+        display: none;
+      }
+    }
+  }
+}
+
+.statusline {
+  .dimmed();
+  margin-left: 1em;
+  .flex-display();
+  .flex-direction(row);
+  .flex-shrink(0);
+  .flex-align-items(center);
+  .statusLabel{
+    width: 10em;
+    .flex-shrink(0);
+    margin-right: 1em;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+  }
+
+  &:not(.nosep) .statusLabel:after{
+    content: ":";
+  }
+  .statusValue{
+    word-break: break-all;
+    .flex-display();
+    .flex-direction(row);
+    .flex-align-items(center);
+  }
+  &.nobreak .statusValue{
+    word-break: normal;
+  }
+  @media(max-width: @small){
+    .flex-direction(column);
+    .flex-align-items(flex-start);
+    margin-top:0.5em;
+    .statusLabel{
+      text-align: left;
+    }
+  }
+}
+
+.settingsBody {
+  overflow: auto;
+  .settingsItem {
+    margin-left: 1em;
+    .flex-display(inline);
+    .flex-direction(row);
+    .flex-shrink(0);
+    .flex-align-items(center);
+    width: 23em;
+    margin-bottom: 0.3em;
+    .label {
+      .dimmed();
+      width: 15em;
+      .flex-shrink(0);
+      margin-right: 1em;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    span.value{
+      margin-left: 0.2em;
+      max-width: 8em;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    &.changed .label{
+      opacity: 1;
+      font-weight: 500;
+    }
+    @media(max-width: @small) {
+      .flex-direction(column);
+      .flex-align-items(flex-start);
+      .label{
+        text-align: left;
+      }
+    }
+  }
+  .settingsList {
+    margin-top: 1em;
+    margin-bottom: 1em;
+    .bottomBorder();
+  }
+}
+
+.actions{
+  .flex-display();
+  .flex-direction(row);
+  .flex-justify-content(space-around);
+  .flex-shrink(0);
+  .flex-wrap(wrap);
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.Status {
+  margin-left: 0;
+  .flex-justify-content(center);
+  .flex-align-items(center);
+  .flex-shrink(0);
+  .statusLabel{
+    width: inherit;
+
+  }
+}
+
+.chartsBody{
+  overflow-y: auto;
+  .chartSetButtons{
+    .flex-display();
+    .flex-direction(row);
+    padding-left: 11.5em;
+    @media (max-width: @small) {
+      padding-left: 0;
+    }
+  }
+}
+
+.hint{
+  margin-top: 0.3em;
+  text-align: center;
+  max-width: 35em;
+  margin-left: auto;
+  margin-right: auto;
+  .preamble{
+    font-weight: 500;
+    margin-right: 0.5em;
+  }
+  .text{
+    .dimmed();
+  }
+}
+
+.iconImage(@url){
+  width:1.5em;
+  height:1.5em;
+  margin: 0.2em;
+  background-image: url("images/@{url}");
+  background-size: contain;
+  display: inline-block;
+}
+//--Checkbox
+
+.checkBox{
+  display: inline-block;
+  width:  1.8em;
+  height: 1.8em;
+  .iconImage('checkbox-blank-outline.svg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  &.checked{
+    background-image: url('images/checkbox-marked-outline.svg');
+  }
+  vertical-align: middle;
+}
+
+//-- Dialog
+.overlay_cover_active {
+  background-color: rgba(0, 0, 0, 0.35);
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 120;
+}
+
+.dialog {
+  & > div {
+    min-width: 0;
+  }
+  z-index: 121;
+  padding: 1em;
+  background-color: white;
+  border-radius: 3px;
+  .flex-display();
+  .flex-direction(column);
+  .flexInner {
+    overflow: auto;
+    .flex-display();
+    .flex-direction(column);
+  }
+  .dialogRow{
+    .flex-display();
+    .flex-direction(row);
+    .flex-align-items(center);
+  }
+  .button{
+    float: right;
+  }
+  .selectItem {
+    .dimmed();
+    &.selected{
+      opacity: 1;
+      font-weight: 500;
+    }
+    margin-top: 1em;
+    .bottomBorder();
+    padding-bottom: 0.5em;
+  }
+  .dialogButtons{
+    margin-top: 0.5em;
+  }
+  .settingsRange {
+    margin-bottom: 0.5em;
+    .dimmed();
+  }
+  .label{
+    margin-bottom: 0.5em;
+  }
+  .dialogRow .label{
+    margin-bottom: 0;
+    width: 10em;
+    .dimmed();
+  }
+  input{
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    max-width: 100%;
+    width: 20em;
+    min-width: 5em;
+    border: none;
+    .bottomBorder();
+    font-size: 1.3em;
+    &.invalidValue{
+      background-color: rgba(255, 0, 0, 0.3);
+    }
+  }
+}
+
+.button {
+  margin: 0.2em 0.2em 0.2em 0.2em;
+  border-top-right-radius: 0.3em;
+  border-top-left-radius: 0.3em;
+  border-bottom-right-radius: 0.3em;
+  border-bottom-left-radius: 0.3em;
+  text-decoration: none;
+  border-color: #D3D3D3;
+  cursor: pointer;
+  outline: none;
+  display: block;
+  margin-top: 0.5em;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  font-size: 1em;
+  padding: 0.5em;
+  width: inherit;
+  background-color: #ECEFF1;
+  border: none;
+  position: relative;
+  color: #546E7A;
+  &.disabled{
+    opacity: 0.6;
+    pointer-events:none;
+  }
+  .globalActions &{
+    min-width: 13em;
+  }
+}
+
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}
+
+.spinner:before {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  margin-left: -10px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  border-top-color: #000000;
+  animation: spinner .8s linear infinite;
+}
+
+.dialog.disabledBy{
+  max-width: 30em;
+}
+
+.hidden{
+  display: none;
+}
+
+.uploadProgress{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1em 1em 1em 1em;
+  background-color: lightgrey;
+  z-index: 10;
+  .flex-display();
+  .progressContainer{
+    .flex(1);
+  }
+  .progressDisplay {
+    margin: 0.5em 0.5em 0.5em 0.5em;
+    height: 2em;
+    display: block;
+    border: 1px solid;
+    margin-left: 1em;
+    margin-bottom: 1em;
+    margin-right: 1em;
+  }
+  .progressInfo{
+    display: block;
+    text-align: center;
+  }
+  .progressDone{
+    height: 100%;
+    background-color: blue;
+  }
+
+  button{
+    .iconImage('ic_clear.svg');
+    width: 4em;
+    height: 4em;
+  }
+}

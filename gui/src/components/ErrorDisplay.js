@@ -1,0 +1,72 @@
+/*
+ Project:   AvnavOchartsProvider GUI
+ Function:  Error display
+
+ The MIT License (MIT)
+
+ Copyright (c) 2020 Andreas Vogel (andreas@wellenvogel.net)
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ */
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import Version from '../../version.js';
+
+
+class ErrorDisplay{
+    constructor(thisref,opt_statefield){
+        this.thisref=thisref;
+        this.timer=undefined;
+        this.setError=this.setError.bind(this);
+        this.resetError=this.resetError.bind(this);
+        this.render=this.render.bind(this);
+        this.statefield=opt_statefield||'error';
+    }
+    setError(text,opt_timeout){
+        let self=this;
+        if (this.timer) window.clearTimeout(this.timer);
+        let ns={};
+        ns[this.statefield]=text+"";
+        this.thisref.setState(ns);
+        this.timer=window.setTimeout(()=>{
+            self.resetError();
+        },opt_timeout||10000);
+    }
+    resetError(){
+        window.clearTimeout(this.timer);
+        this.timer=undefined;
+        let ns={};
+        ns[this.statefield]=undefined;
+        this.thisref.setState(ns);
+    }
+    render(){
+        let self=this;
+        if (! this.thisref.state[this.statefield]) return null;
+        return (
+            <div className="errorDisplay" onClick={self.resetError}>
+                <div className="text">{this.thisref.state[this.statefield]}</div>
+            </div>
+        );
+    }
+    hasError(){
+        return this.thisref.state[this.statefield] && true;
+    }
+}
+
+export default ErrorDisplay;

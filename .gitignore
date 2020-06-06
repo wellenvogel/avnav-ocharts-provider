@@ -1,0 +1,17 @@
+perftest/*stat
+perftest/*log
+perftest/*csv
+**/*log
+**/*.swp
+/build/
+.idea/**
+.gradle/**
+nbproject/**
+provider/debug
+provider/raspbian*
+provider/ubuntu*
+provider/debian/*
+docker/_config
+charts/
+**/*.log.*
+

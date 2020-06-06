@@ -1,0 +1,90 @@
+oensec scales
+
+1. Screen: 96dpi -> ~4px/mm -> 3,779px/mm
+
+2. Beispiel OpenCPN scale: 1:3200 ca. 100m/100px -> 1m/pix -> 4m/mm -> 4000 ok, genauer: 3200/3.779 -> 0,846 m/pixel
+
+3. gleiche Darstellung bei AvNav knapp ZL 17
+    zl 17 zoom level von chartconvert -> 1.19m/pixel 
+
+4. Karte HL40_1 scale 4300, 2669x2223 berechnet chartconvert 0.5 mpp umgerechnet auf 3200 -> 0,37mpp
+   wenn man hier 256dpi annimmt muss man also mit 256/96 multiplizieren -> 0,99mpp!
+
+
+Folgerung:
+In einem ersten Schritt Einsortierung nach dem Scale be 96dpi (3,779px/mm) -> 0,264583333 mm/px
+
+scales daraus:
+[591658711.6545283, 295829355.82726413, 147914677.91363207, 73957338.95681603, 36978669.478408016, 18489334.739204008, 9244667.369602004, 4622333.684801002, 2311166.842400501, 1155583.4212002505, 577791.7106001253, 288895.8553000626, 144447.9276500313, 72223.96382501566, 36111.98191250783, 18055.990956253914, 9027.995478126957, 4513.997739063479, 2256.9988695317393, 1128.4994347658696, 564.2497173829348, 282.1248586914674, 141.0624293457337, 70.53121467286685, 35.265607336433426, 17.632803668216713, 8.816401834108357, 4.408200917054178, 2.204100458527089, 1.1020502292635446, 0.5510251146317723, 0.27551255731588614, 0.13775627865794307]
+
+scales[17]: 4513.997739063479
+scales[16]: 9027.995478126957
+scales[18]: 2256.9988695317393
+
+Nach Veröffentlichungen: - z.B. https://blog.francis-fustier.fr/en/cartographie-electronique-echelles-et-overscale/,
+https://iho.int/iho_pubs/standard/S-65/S-65_ed2%201%200_June17.pdf
+
+Overview 15000000  zl 9: 1155583.4212002505
+General    350000  zl 10: 577791.7106001253, zl 11: 288895.8553000626
+Coastal     90000  zl 13: 72223.96382501566
+Approach    22000  zl 15: 18055.990956253914
+Harbour      4000  zl 18: 2256.9988695317393
+
+Vorschlag: 5 Layer: 8,10,13,15,18
+
+Berechnungen: mpp for zoomlevel 0: 156543.033928041, danach jeweils /2
+
+Steps:
+1. Lese Karten, sortiere sie ein nach (müssen ggf. nicht komplett geladen werden, nur header):
+   zoomlevel, bounding boxes (in tile Koordinaten)
+2. bei Abfrage:
+   Aussuchen nach zoomlevel, dann bounding box, dann rendern - was ist mit Überlappungen? bis zu 4x rendern? Besser erst mal größten Anteil?    
+
+
+Oensec:
+
+Beim Lesen: Objekte bekommen Koordinaten in mercator metern bezogen auf Extent-Mittelpunkt (der Karte) - siehe S57Obj::SetPointGeometry -> georef.cpp toSM
+
+Beim Rendern:
+easting_vp_center, northing_vp_center -> diff (in Mercator) viewport center to chart center
+
+15 17603 10465
+
+Settings für Plugin
+
+
+
+ochartShop.cpp	
+    pConf->SetPath( _T("/PlugIns/oesenc") );      [position 724:16]	
+    pConf->SetPath ( _T ( "/PlugIns/oesenc/charts" ) );      [position 734:16]	
+    pConf->SetPath( _T("/PlugIns/oesenc") );      [position 786:14]	
+    pConf->SetPath( _T("/PlugIns/oesenc/charts") );      [position 794:14]	
+    
+oesenc_pi.cpp	
+    pConf->SetPath( _T ( "/ChartDirectories" ) );      [position 1286:12]
+        used for ScrubChartinfoList - so keep it empty?!	
+    pConf->SetPath ( _T ( "/PlugIns/oesenc/ChartinfoList" ) );      [position 1309:12]	
+    pConf->SetPath( _T ( "/Settings" ) );          [position 1392:16]
+        "ZoomDetailFactorVector" -> scamin visibility config
+    pConf->SetPath( _T("/PlugIns/oesenc") );      [position 1399:16]	
+    pConf->SetPath ( _T ( "/PlugIns/oesenc/ChartinfoList" ) );      [position 1427:16]	
+    pConf->SetPath ( _T ( "/PlugIns/oesenc/EULA" ) );      [position 1451:16]	
+    pConf->SetPath( _T("/PlugIns/oesenc") );      [position 1492:16]	
+    pConf->SetPath ( _T ( "/PlugIns/oesenc/ChartinfoList" ) );      [position 1505:16]	
+    pConf->SetPath ( _T ( "/PlugIns/oesenc/EULA" ) );      [position 1518:16]	
+    g_pconfig->SetPath( _T ( "/Settings" ) );      [position 2655:16]
+        "DebugS57" - default 0
+    g_pconfig->SetPath( _T ( "/Settings/GlobalState" ) );      [position 2658:16]	
+    g_pconfig->SetPath( _T ( "/Settings/GlobalState" ) );      [position 2715:16]	
+    g_pconfig->SetPath( _T ( "/Settings/ObjectFilter" ) );      [position 2725:16]	
+        pConf->SetPath( _T("/PlugIns/oesenc") );      [position 4189:16]	
+s52plib.cpp	
+    pconfig->SetPath( _T ( "/Settings" ) );      [position 10589:14]
+         unused, DebugS57 commented		
+    pconfig->SetPath( _T ( "/Settings/GlobalState" ) );      [position 10592:14]	
+    pconfig->SetPath( _T ( "/Settings/GlobalState" ) );      [position 10649:14]	
+    pconfig->SetPath( _T ( "/Settings" ) );      [position 10666:14]	
+        unused
+    pconfig->SetPath( _T ( "/Settings/GlobalState" ) );      [position 10668:14]	
+    pconfig->SetPath( _T ( "/Settings/GlobalState" ) );      [position 10707:14]	
+    pconfig->SetPath( _T ( "/Settings/ObjectFilter" ) );      [position 10728:14]	
