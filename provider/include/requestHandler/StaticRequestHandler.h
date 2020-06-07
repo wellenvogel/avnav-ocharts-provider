@@ -41,6 +41,7 @@ public:
    
     StaticRequestHandler(wxString baseDir){
         this->baseDir=baseDir;
+        LOG_INFO(wxT("Static request handler for %s"),baseDir);
     }
     virtual HTTPResponse *HandleRequest(HTTPRequest* request) {
         wxString url = request->url.Mid(URL_PREFIX.Length());
