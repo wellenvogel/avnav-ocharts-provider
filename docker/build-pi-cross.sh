@@ -95,6 +95,7 @@ for n in stage-user/00-adduser/00-run-chroot.sh
 do	
 	rm -f $n
 	echo "#! /bin/bash" > $n
+	echo "cat /etc/group | grep ':`id -g`:' || groupadd -g `id -g` `id -g -n`" >> $n
 	echo "$checkcmd || $usercmd" >> $n
 	chmod 755 $n
 done
