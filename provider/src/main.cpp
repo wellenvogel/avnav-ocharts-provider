@@ -25,6 +25,7 @@
  *
  */
 #include <stdio.h>
+#include <sys/resource.h>
 #ifndef __WXMSW__
 #include <signal.h>
 #include <setjmp.h>
@@ -480,6 +481,27 @@ private:
         
         if (numCharts < 1){
             LOG_ERRORC(wxT("no known charts found to be handled"));
+        }
+        if (numCharts >= 1){
+            unsigned int wantedFiles=5*numCharts+1;
+            struct rlimit limit;
+            int rt=getrlimit(RLIMIT_NOFILE,&limit);
+            if (rt != 0){
+                LOG_ERROR(_T("unable to get current number of files"));
+            }
+            else{
+                if (limit.rlim_cur < wantedFiles){
+                    if (wantedFiles > limit.rlim_max) wantedFiles=limit.rlim_max-1;
+                    limit.rlim_cur=wantedFiles;
+                    rt=setrlimit(RLIMIT_NOFILE,&limit);
+                    if (rt != 0){
+                        LOG_ERROR(_T("unable to set number of open files to %d"),wantedFiles);
+                    }
+                    else{
+                        LOG_INFO(_T("set number of open files to %d"),wantedFiles);
+                    }
+                }
+            }
         }
         ChartSetInfoList infos;
         ChartSetMap::iterator setIter;
