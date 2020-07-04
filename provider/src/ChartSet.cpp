@@ -146,6 +146,7 @@ void ChartSet::AddCandidate(wxString fileName){
 }
 void ChartSet::AddError(wxString fileName){
     numErrors++;
+    openErrors++;
 }
 
 bool ChartSet::SetEnabled(bool enabled,wxString disabledBy){
@@ -230,6 +231,10 @@ ChartSet::RequestList ChartSet::GetLastRequests(){
         if (fit == finalRt.end()) finalRt.push_back(*rit);
     }
     return finalRt;
+}
+
+bool ChartSet::AllowOpenRetry(){
+    return openErrors < MAX_ERRORS_RETRY;
 }
 
 wxString ChartSet::LocalJson(){

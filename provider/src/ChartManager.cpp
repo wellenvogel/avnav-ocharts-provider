@@ -171,24 +171,17 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory before chart global=%dkb,local=%dkb"),globalKb,ourKb);
-    if ((rt = info->Init()) == PI_INIT_OK) {
-        //openCharts.push_back(info);
+    if ((rt = info->Init(set->AllowOpenRetry())) == PI_INIT_OK) {
         info->Close();
         set->charts->AddChart(info);
+        set->ResetOpenErrors();
         SystemHelper::GetMemInfo(&globalKb, &ourKb);
-        LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);
-        /*
-        CheckMemoryLimit();
-        if (maxOpenCharts >= 0 && openCharts.size() > (size_t) maxOpenCharts) {
-            openCharts.front()->Close();
-            openCharts.pop_front();
-        }
-         */
-
+        LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);        
         return true;
     } else {
-        LOG_ERROR(_T("loading chart failed wit code %d"), rt);
+        LOG_ERROR(_T("loading chart failed wit code %d"), rt);        
         set->AddError(chartFile.GetFullPath());
+        LOG_ERROR(_T("unable to load chart with retry"));
         return false;
     }
 }
@@ -606,7 +599,7 @@ bool ChartManager::OpenChart(ChartInfo* chart){
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory before chart open global=%dkb,our=%dkb"),globalKb,ourKb);
-    chart->Reopen(true);
+    chart->Reopen(true,true);
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory after chart open global=%dkb,our=%dkb"),globalKb,ourKb);
     openCharts.push_back(chart);

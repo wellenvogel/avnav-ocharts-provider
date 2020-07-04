@@ -82,6 +82,7 @@ void catch_signals(int signo) {
 
 #endif
 
+void ignoreSig(int sig){}
 
 /*
  * ( max_physical ) / (m_display_size_mm /1000.);
@@ -208,6 +209,8 @@ public:
     virtual int MainLoop() {
         //ignore sigpipes
         signal(SIGPIPE, SIG_IGN);
+        signal(SIGUSR1, ignoreSig);
+        setpgid(0,0);
         wxInitAllImageHandlers();
         Logger::CreateInstance(logFile,maxLogLines);
         Logger::instance()->SetLevel((int)debugLevel);

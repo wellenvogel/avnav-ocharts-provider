@@ -24,6 +24,7 @@
  ***************************************************************************
  *
  */
+#include <wait.h>
 #include "ChartInfo.h"
 #include "Tiles.h"
 #include "georef.h"
@@ -77,7 +78,7 @@ ChartInfo::~ChartInfo() {
     this->chart = NULL;
 }
 
-bool ChartInfo::Reopen(bool fullInit){
+bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
     if (this->chart != NULL) return true;
     LOG_INFO(_T("opening %s"), filename);
     wxObject *chartObject = ::wxCreateDynamicObject(classname);
@@ -87,6 +88,19 @@ bool ChartInfo::Reopen(bool fullInit){
     int rt = this->chart->Init(filename,fullInit?PI_FULL_INIT:PI_HEADER_ONLY);
     if (rt != PI_INIT_OK) {
         LOG_ERROR(_T("opening %s failed with error %d"), filename, rt);
+        if (allowRetry){
+            //kill all oeserverd children
+            //we do this be sending a signal to our process group that we ignore...
+            LOG_ERROR(_T("killing all children"));
+            killpg(0,SIGUSR1);
+            waitpid(-1,NULL,WNOHANG);
+            rt = this->chart->Init(filename,fullInit?PI_FULL_INIT:PI_HEADER_ONLY);
+            if (rt == PI_INIT_OK){
+                LOG_INFO(_T("opening succeeded on retry for %s"),filename);
+                return true;
+            }
+            LOG_ERROR(_T("opening %s finally failed after retry"),filename);
+        }
         return false;
     }
     return true;
@@ -108,8 +122,8 @@ bool ChartInfo::Close(){
     return true;
 }
 
-int ChartInfo::Init() {
-    if (! Reopen()) return PI_INIT_FAIL_REMOVE;
+int ChartInfo::Init(bool allowRetry) {
+    if (! Reopen(false,allowRetry)) return PI_INIT_FAIL_REMOVE;
     nativeScale=chart->GetNativeScale();
     chart->GetChartExtent(&extent);
     return PI_INIT_OK;
@@ -183,7 +197,7 @@ TileBox ChartInfo::GetTileBounds(){
 
 bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region){
     if (chart == NULL){
-        if (!Reopen()) return false;
+        if (!Reopen(true,false)) return false;
     }
     lastRender=wxGetLocalTime();
     wxBitmap bitmap;

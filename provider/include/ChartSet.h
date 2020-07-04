@@ -42,6 +42,7 @@ class ChartList;
 class UpdateReceiverImpl;
 class ChartSet : public StatusCollector{
 public:
+    const int MAX_ERRORS_RETRY=3; //stop retrying after that many errors
     typedef enum{
         STATE_INIT,
         STATE_PARSING,
@@ -88,6 +89,8 @@ public:
     RequestList         GetLastRequests();
     virtual wxString    LocalJson() override;
     double              GetMppForZoom(int zoom);
+    void                ResetOpenErrors(){openErrors=0;}
+    bool                AllowOpenRetry();
     
 
     
@@ -109,6 +112,7 @@ private:
     int                 numErrors;
     bool                canDelete;
     wxString            disabledBy;
+    int                 openErrors; //consecutive openErrors, disable retry when limit reached
 };
 
 

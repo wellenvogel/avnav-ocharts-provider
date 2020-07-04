@@ -127,7 +127,7 @@ private:
 public:
     ChartInfo(wxString className,wxString fileName);
     ~ChartInfo();
-    int         Init();
+    int         Init(bool allowRetry=false);
     wxString    GetXmlBounds();
     wxString    ToString();
     int         GetZoom(){return zoom;}
@@ -146,7 +146,7 @@ public:
     TileBox     GetTileBounds();
     bool        IsOpen();
     long        GetLastRender();
-    bool        Reopen(bool fullInit=false);
+    bool        Reopen(bool fullInit=false,bool allowRetry=false);
     bool        Close();
     wxString    GetFileName(){return filename;}
     int         FillInfo(const ZoomLevelScales *);
