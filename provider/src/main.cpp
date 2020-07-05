@@ -476,8 +476,8 @@ private:
         }
         chartManager=new ChartManager(&settings,&extensions);
         statusCollector.AddItem("chartManager",chartManager);
-        int numCharts=chartManager->PrepareChartSets(uploadChartList,true,true);
-        numCharts+=chartManager->PrepareChartSets(chartlist);
+        chartManager->PrepareChartSets(uploadChartList,true,true);
+        int numCharts=chartManager->PrepareChartSets(chartlist);
         
         if (numCharts < 1){
             LOG_ERRORC(wxT("no known charts found to be handled"));
@@ -490,8 +490,8 @@ private:
                 LOG_ERROR(_T("unable to get current number of files"));
             }
             else{
-                if (limit.rlim_cur < wantedFiles){
-                    if (wantedFiles > limit.rlim_max) wantedFiles=limit.rlim_max-1;
+                if (wantedFiles > limit.rlim_max/2) wantedFiles=limit.rlim_max/2;
+                if (limit.rlim_cur < wantedFiles){                    
                     limit.rlim_cur=wantedFiles;
                     rt=setrlimit(RLIMIT_NOFILE,&limit);
                     if (rt != 0){
