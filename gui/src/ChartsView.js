@@ -174,6 +174,8 @@ const UploadIndicator = (iprops)=>{
     );
 };
 
+const RESTART_WINDOW=60000; //ms to ignore errors during restart
+const MIN_RESTART_WINDOW=5000; //ms before we reset the restart flag
 class ChartsView extends Component {
 
     constructor(props){
@@ -186,6 +188,7 @@ class ChartsView extends Component {
         this.dialog=new OverlayDialog(this);
         this.timer=undefined;
         this.cstimer=undefined;
+        this.restartTime=undefined;
         this.getCurrent=this.getCurrent.bind(this);
         this.showDialog=this.showDialog.bind(this);
         this.fetchState=this.fetchState.bind(this);
@@ -194,20 +197,41 @@ class ChartsView extends Component {
         this.startUpload=this.startUpload.bind(this);
         this.listRef=React.createRef();
     }
+    omitErrors(curRestart){
+        if (curRestart === undefined && this.restartTime === undefined) return false;
+        let now=(new Date()).getTime();
+        if (now > (this.restartTime + RESTART_WINDOW)){
+            this.restartTime=undefined;
+        }
+        if (curRestart === undefined) return true;
+        if (now > (curRestart + RESTART_WINDOW)){
+            return false;
+        }
+        return true;
+    }
     getCurrent(){
         let self=this;
+        let curRestart=this.restartTime;
         Util.fetchJson(STATUSURL)
             .then((jsonData)=>{
                 self.setState({current:jsonData.data});
             })
             .catch((error)=>{
+                if (this.omitErrors(curRestart)) return;
                 this.error.setError("Error fetching current status: "+error)
             });
     }
     fetchState(){
         let self=this;
+        let curRestart=self.restartTime;
         Util.fetchJson(SETTINGSURL + "ready")
             .then((jsonData)=>{
+                let now=(new Date()).getTime();
+                if (curRestart == self.restartTime && curRestart !== undefined && now >= (curRestart+MIN_RESTART_WINDOW)){
+                    //restart restart timer on successfull receive
+                    self.restartTime=undefined;
+                    self.dialog.hideDialog();
+                }
                 if (self.state.ready == readyState(jsonData.ready)) return;
                 self.error.resetError();
                 self.setState({ready:readyState(jsonData.ready)});
@@ -215,6 +239,7 @@ class ChartsView extends Component {
 
             })
             .catch((error)=>{
+                if (self.omitErrors(curRestart)) return;
                 if (self.state.ready != "ERROR") {
                     self.setState({ready: "ERROR"});
                 }
@@ -344,11 +369,14 @@ class ChartsView extends Component {
     }
     triggerRestart(){
         let self=this;
+        let now=(new Date()).getTime();
+        self.restartTime=now;
         Util.fetchJson(SETTINGSURL+"restart")
             .then((jsonData)=>{
                 self.dialog.alert("restart triggered");
             })
             .catch((error)=>{
+                self.restartTime=undefined;
                 self.error.setError(error);
             })
     }
