@@ -43,7 +43,10 @@ const STATUSURL="/status/";
 const SpinnerDialog=(props)=>{
     return(
         <div className={"dialog "+props.className}>
-            <div className="spinner"></div>
+            {props.title && <div className="spinnerTitle">{props.title}</div>}
+            <div className="spinnerFrame">
+                <div className="spinner"></div>
+            </div>
         </div>
     )
 };
@@ -267,6 +270,11 @@ class ChartsView extends Component {
         window.clearInterval(this.timer);
         window.clearInterval(this.cstimer);
     }
+    showSpinner(title){
+        this.showDialog((props)=>{
+            return <SpinnerDialog {...props} title={title}/>
+        });
+    }
     showDialog(dialog){
         this.dialog.setDialog(dialog);
     }
@@ -284,7 +292,7 @@ class ChartsView extends Component {
     }
     getFPR(forDongle){
         this.error.resetError();
-        this.dialog.setDialog(SpinnerDialog);
+        this.showSpinner();
         let self=this;
         let url=SETTINGSURL+"createfingerprint";
         if (forDongle) url+="?forDongle=1";
@@ -467,7 +475,7 @@ class ChartsView extends Component {
                 self.dialog.confirm("Really delete version "+props.info.version+"?",
                     props.info.title)
                     .then(()=>{
-                        this.dialog.setDialog(SpinnerDialog);
+                        this.showSpinner();
                         Util.postFormData(UPLOADURL+"deleteset",{chartSet:props.info.name})
                             .then(()=>{
                                 self.getCurrent();
@@ -537,7 +545,7 @@ class ChartsView extends Component {
                             closeCallback={()=>self.finishUpload(true)}
                             upload100={()=>{
                                 self.setState({uploadIndicator:undefined});
-                                self.dialog.setDialog(SpinnerDialog);
+                                self.showSpinner("Unpacking and Checking Charts");
                             }}
                         />
                     }
