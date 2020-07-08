@@ -291,6 +291,7 @@ class ChartsView extends Component {
         }
     }
     getFPR(forDongle){
+        this.setState({showUpload: false});
         this.error.resetError();
         this.showSpinner();
         let self=this;
@@ -388,6 +389,7 @@ class ChartsView extends Component {
         this.getCurrent();
     }
     triggerRestart(){
+        this.setState({showUpload: false});
         this.error.resetError();
         let self=this;
         let now=(new Date()).getTime();
