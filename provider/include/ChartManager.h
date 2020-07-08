@@ -129,6 +129,14 @@ public:
      * @return 
      */
     bool                DeleteChartSet(wxString key);
+    /**
+     * try to open a chart file (used after uploading),
+     * the file is not assigned to any set and is closed immediately
+     * @param chartFile
+     * @return false in case of errors
+     */
+    bool                TryOpenChart(wxFileName chartFile);
+    bool                HasKnownExtension(wxFileName chartFile);
     
     bool                Stop();
     ChartSet *          GetChartSet(wxString key);

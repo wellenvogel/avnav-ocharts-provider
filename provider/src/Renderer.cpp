@@ -172,10 +172,16 @@ void Renderer::DoRenderTile(RenderMessage *msg){
     if (msg->GetSettingsSequence() != manager->GetSettings()->GetCurrentSequence()){
         LOG_DEBUG(wxT("DoRenderTile: %s settings sequence changed, cancel"),tile.ToString());
         msg->SetDone();
+        return;
     }
     //we need to check the cache again as maybe some requests already had
     //been in the queue
     ChartSet *set=msg->GetSet();
+    if (!set->IsActive()){
+        LOG_DEBUG(wxT("DoRenderTile: chart set no longer active"),tile.ToString());
+        msg->SetDone();
+        return;
+    }
     msg->SetDequeueTime();
     //we only check the in memory cache again
     //it is very unlikely that a tile was not in the cache when the request started but now

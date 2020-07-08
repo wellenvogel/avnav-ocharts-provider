@@ -151,6 +151,31 @@ void ChartManager::CheckMemoryLimit(){
     }
 }
 
+bool ChartManager::HasKnownExtension(wxFileName chartFile){
+    wxString ext = chartFile.GetExt().Upper();
+    ext.Prepend(_T("*."));
+    ExtensionList::iterator it=extensions->find(ext);
+    if (it == extensions->end()){
+        return false;
+    }
+    return true;
+}
+bool ChartManager::TryOpenChart(wxFileName chartFile){
+    LOG_INFO(wxT("ChartManager: TryOpenChart %s"),chartFile.GetFullPath());
+    wxString ext = chartFile.GetExt().Upper();
+    ext.Prepend(_T("*."));
+    ExtensionList::iterator it=extensions->find(ext);
+    if (it == extensions->end()){
+        LOG_INFO(wxT("unknown extension for chart file %s, skip"),chartFile.GetFullPath());
+        return false;
+    }
+    ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath());    
+    int rt = info->Init(true);
+    info->Close();
+    LOG_INFO(wxT("ChartManager: TryOpenChart %s returns %d"),chartFile.GetFullPath(),rt);
+    return rt == PI_INIT_OK;
+}
+
 bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDeleteSet,int number){
     LOG_INFO(wxT("ChartManager: HandleChart %s, mode=%s"),chartFile.GetFullPath(),(setsOnly?"prepare":"read"));
     wxString ext = chartFile.GetExt().Upper();

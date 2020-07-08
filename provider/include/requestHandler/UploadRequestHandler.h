@@ -66,6 +66,31 @@ public:
         
 };
 
+class TryMessage : public MainMessage{
+public:
+    ChartManager    *manager;
+    bool            ok=false;
+    bool            handled=false;
+    wxFileName      chartFile;
+    TryMessage(ChartManager *manager,wxFileName chartFile): MainMessage(){
+        this->manager=manager;
+        this->chartFile=chartFile;
+    }
+    virtual ~TryMessage(){};
+    virtual void Process(bool discard=false){
+        if (discard){
+            SetDone();
+            return;
+        }
+        LOG_INFO(wxT("TryMessage::Process"));
+        ok=manager->TryOpenChart(chartFile);
+        handled=true;
+        LOG_INFO(wxT("TryMessage done"));
+        SetDone();
+    }
+        
+};
+
 class DeleteSetMessage: public MainMessage{
     ChartManager    *manager;
     wxString        set;
@@ -274,10 +299,49 @@ public:
             wxString errUnpack=Unpack(outName.GetFullPath(),chartDir);
             wxRemoveFile(outName.GetFullPath());
             if (errUnpack != wxEmptyString){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse(errUnpack);    
             }
+            //find a first chart file
+            wxDir chartDirAsDir(outDir.GetFullPath());
+            if (! chartDirAsDir.IsOpened()){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to read chart dir %s after unpacking"),outDir.GetFullPath()));    
+            }
+            wxString chartFileName;
+            bool foundChart=false;
+            bool hasNext=chartDirAsDir.GetFirst(&chartFileName,wxEmptyString);
+            while (hasNext && ! foundChart){
+                if (manager->HasKnownExtension(chartFileName)){
+                    foundChart=true;
+                    break;
+                }
+                hasNext=chartDirAsDir.GetNext(&chartFileName);
+            }
+            if (! foundChart){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxString::Format(wxT("did not find any known chart file in %s"),outDir.GetFullPath()));    
+            }
+            LOG_INFO(wxT("found chart %s to try"),chartFileName);
+            TryMessage *trymsg=new TryMessage(manager,wxFileName(outDir.GetFullPath(),chartFileName));
+            HTTPResponse *rsp=EnqueueAndWait(queue,trymsg,"Try open chart request",30000);
+            if (rsp != NULL) {
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return rsp;
+            }
+            if (! trymsg->handled){
+                trymsg->Unref();
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse("unable to trigger chart open"); 
+            }
+            bool chartOk=trymsg->ok;
+            trymsg->Unref();
+            if (! chartOk){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxT("The system cannot open charts from this chart set. Maybe wrong key. ChartSet deleted"));
+            }
             ScanMessage *msg=new ScanMessage(manager,outDir.GetFullPath());
-            HTTPResponse *rsp=EnqueueAndWait(queue,msg,"Scan request");
+            rsp=EnqueueAndWait(queue,msg,"Scan request");
             if (rsp != NULL) return rsp;
             if (! msg->handled){
                 msg->Unref();
