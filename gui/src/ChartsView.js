@@ -138,6 +138,9 @@ class UploadProgress extends React.Component{
         let oldHandler=props.handler.progresshandler;
         props.handler.progresshandler=(ev)=>{
             if (ev.lengthComputable){
+                if (ev.loaded > 0 && ev.total == ev.loaded){
+                    if (props.upload100) props.upload100();
+                }
                 self.setState({
                     loaded:ev.loaded,total:ev.total
                 });
@@ -165,7 +168,8 @@ const UploadIndicator = (iprops)=>{
     return (
         <div className="uploadProgress">
             <UploadProgress
-                handler={props.handler}/>
+                handler={props.handler}
+                upload100={iprops.upload100}/>
             <button className="uploadCancel button" onClick={()=>{
                 iprops.closeCallback();
                 }}
@@ -239,7 +243,12 @@ class ChartsView extends Component {
 
             })
             .catch((error)=>{
-                if (self.omitErrors(curRestart)) return;
+                if (self.omitErrors(curRestart)) {
+                    if (self.state.ready != "RESTARTING") {
+                        self.setState({ready: "RESTARTING"});
+                    }
+                    return;
+                }
                 if (self.state.ready != "ERROR") {
                     self.setState({ready: "ERROR"});
                 }
@@ -274,6 +283,7 @@ class ChartsView extends Component {
         }
     }
     getFPR(forDongle){
+        this.error.resetError();
         this.dialog.setDialog(SpinnerDialog);
         let self=this;
         let url=SETTINGSURL+"createfingerprint";
@@ -305,6 +315,7 @@ class ChartsView extends Component {
 
     }
     uploadSet(){
+        this.error.resetError();
         this.setState({
             fileUploadKey:this.state.fileUploadKey+1,
             showUpload:true
@@ -365,9 +376,11 @@ class ChartsView extends Component {
             showUpload:undefined,
             uploadIndicator:undefined
         });
+        this.dialog.hideDialog();
         this.getCurrent();
     }
     triggerRestart(){
+        this.error.resetError();
         let self=this;
         let now=(new Date()).getTime();
         self.restartTime=now;
@@ -521,7 +534,12 @@ class ChartsView extends Component {
                         />}
                     {self.state.uploadIndicator && <UploadIndicator
                             uploadIndicator={self.state.uploadIndicator}
-                            closeCallback={()=>self.finishUpload(true)}/>
+                            closeCallback={()=>self.finishUpload(true)}
+                            upload100={()=>{
+                                self.setState({uploadIndicator:undefined});
+                                self.dialog.setDialog(SpinnerDialog);
+                            }}
+                        />
                     }
                 </React.Fragment>
             )

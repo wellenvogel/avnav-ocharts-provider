@@ -44,6 +44,7 @@ const stateToIcon=(state)=>{
     if (state == "INACTIVE") return greyIcon;
     if (state == "ACTIVE") return greenIcon;
     if (state == "ERROR") return redIcon;
+    if (state == "RESTARTING") return greyIcon;
 };
 
 
