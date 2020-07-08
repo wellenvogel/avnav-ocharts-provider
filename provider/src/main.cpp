@@ -467,11 +467,15 @@ private:
             wxString fileName;
             bool hasNext = dir.GetFirst(&fileName);
             while (hasNext) {
-                if (fileName != UPLOAD_TEMP_DIR){
-                    wxString localFile(dir.GetName()+wxFileName::GetPathSeparator()+ fileName);
+                wxString localFile(dir.GetName()+wxFileName::GetPathSeparator()+ fileName);
+                if (!fileName.StartsWith(UPLOAD_TEMP_DIR)){                    
                     if (wxDirExists(localFile)){
                         uploadChartList.Add(localFile);
                     } 
+                }
+                else{
+                    LOG_INFO(wxT("Removing temp chart dir %s"),localFile);
+                    wxFileName::Rmdir(localFile,wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 }
                 hasNext=dir.GetNext(&fileName);
             }

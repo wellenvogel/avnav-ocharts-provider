@@ -127,12 +127,13 @@ private:
     MainQueue       *queue;
     wxString        uploadDir;
     
-    wxString        MkTempName(){
+    wxString        MkTempName(wxString prefix=wxEmptyString){
         struct timeval tv;
         gettimeofday(&tv,NULL);
         wxDateTime now(tv.tv_sec);
+        if (prefix == wxEmptyString) prefix=TMP_PREFIX;
         return wxString::Format(_T("%s%s-%ld"),
-            TMP_PREFIX,now.Format("%Y/%m/%d-%H:%M:%S"),(long)(tv.tv_usec));
+            prefix,now.Format("%Y-%m-%d-%H:%M:%S"),(long)(tv.tv_usec));
     }
     
     class ZipChartInfo{
@@ -324,7 +325,7 @@ public:
             }
             LOG_INFO(wxT("found chart %s to try, create temp dir with it"),chartFileName);
             //copy the chart file to a temp dir and add an emptied chartinfo.txt
-            wxFileName tempDir=wxFileName::DirName(uploadDir+wxFileName::GetPathSeparator()+UPLOAD_TEMP_DIR);
+            wxFileName tempDir=wxFileName::DirName(uploadDir+wxFileName::GetPathSeparator()+MkTempName(UPLOAD_TEMP_DIR));
             if (tempDir.Exists()){
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
             }
@@ -336,12 +337,14 @@ public:
             //create a temp chart info without eulas
             ChartSetInfo setInfo=ChartSetInfo::ParseChartInfo(outDir.GetFullPath());
             if (! setInfo.infoParsed){
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse(wxT("unable to parse chartinfo"));
             }
             wxFileName chartInfoName(tempDir.GetFullPath(),"Chartinfo.txt");
             wxFile newChartInfo(chartInfoName.GetFullPath(),wxFile::write);
             if (! newChartInfo.IsOpened()){
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp chartInfo %s"),chartInfoName.GetFullPath()));                
             }
@@ -350,6 +353,7 @@ public:
             //copy the chart to the temp dir
             wxFileName tempFile(tempDir.GetFullPath(),chartFileName);
             if (!wxCopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+chartFileName,tempFile.GetFullPath())){
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy chart to temp dir %s"),chartFileName));                
             }
@@ -357,20 +361,24 @@ public:
             TryMessage *trymsg=new TryMessage(manager,tempFile);
             HTTPResponse *rsp=EnqueueAndWait(queue,trymsg,"Try open chart request",30000);
             if (rsp != NULL) {
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return rsp;
             }
             if (! trymsg->handled){
                 trymsg->Unref();
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse("unable to trigger chart open"); 
             }
             bool chartOk=trymsg->ok;
             trymsg->Unref();
             if (! chartOk){
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse(wxT("The system cannot open charts from this chart set. Maybe wrong key. ChartSet deleted"));
             }
+            wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
             ScanMessage *msg=new ScanMessage(manager,outDir.GetFullPath());
             rsp=EnqueueAndWait(queue,msg,"Scan request");
             if (rsp != NULL) return rsp;
