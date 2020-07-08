@@ -115,7 +115,7 @@ public:
 };
 
 
-
+#define UPLOAD_TEMP_DIR wxT("__tmp")
 class UploadRequestHandler : public RequestHandler {
     const unsigned long MAXUPLOAD=1024*1024*1024; //1GB
 public:
@@ -322,8 +322,39 @@ public:
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("did not find any known chart file in %s"),outDir.GetFullPath()));    
             }
-            LOG_INFO(wxT("found chart %s to try"),chartFileName);
-            TryMessage *trymsg=new TryMessage(manager,wxFileName(outDir.GetFullPath(),chartFileName));
+            LOG_INFO(wxT("found chart %s to try, create temp dir with it"),chartFileName);
+            //copy the chart file to a temp dir and add an emptied chartinfo.txt
+            wxFileName tempDir=wxFileName::DirName(uploadDir+wxFileName::GetPathSeparator()+UPLOAD_TEMP_DIR);
+            if (tempDir.Exists()){
+                wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+            }
+            tempDir.Mkdir(wxS_DIR_DEFAULT,wxPATH_MKDIR_FULL);
+            if (! tempDir.Exists()){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp dir %s"),tempDir.GetFullPath()));
+            }
+            //create a temp chart info without eulas
+            ChartSetInfo setInfo=ChartSetInfo::ParseChartInfo(outDir.GetFullPath());
+            if (! setInfo.infoParsed){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxT("unable to parse chartinfo"));
+            }
+            wxFileName chartInfoName(tempDir.GetFullPath(),"Chartinfo.txt");
+            wxFile newChartInfo(chartInfoName.GetFullPath(),wxFile::write);
+            if (! newChartInfo.IsOpened()){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp chartInfo %s"),chartInfoName.GetFullPath()));                
+            }
+            newChartInfo.Write(wxString::Format(wxT("UserKey:%s\n"),setInfo.userKey));
+            newChartInfo.Close();
+            //copy the chart to the temp dir
+            wxFileName tempFile(tempDir.GetFullPath(),chartFileName);
+            if (!wxCopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+chartFileName,tempFile.GetFullPath())){
+                wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy chart to temp dir %s"),chartFileName));                
+            }
+                        
+            TryMessage *trymsg=new TryMessage(manager,tempFile);
             HTTPResponse *rsp=EnqueueAndWait(queue,trymsg,"Try open chart request",30000);
             if (rsp != NULL) {
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);

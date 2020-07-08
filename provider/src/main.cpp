@@ -467,10 +467,12 @@ private:
             wxString fileName;
             bool hasNext = dir.GetFirst(&fileName);
             while (hasNext) {
-                wxString localFile(dir.GetName()+wxFileName::GetPathSeparator()+ fileName);
-                if (wxDirExists(localFile)){
-                    uploadChartList.Add(localFile);
-                }   
+                if (fileName != UPLOAD_TEMP_DIR){
+                    wxString localFile(dir.GetName()+wxFileName::GetPathSeparator()+ fileName);
+                    if (wxDirExists(localFile)){
+                        uploadChartList.Add(localFile);
+                    } 
+                }
                 hasNext=dir.GetNext(&fileName);
             }
         }
