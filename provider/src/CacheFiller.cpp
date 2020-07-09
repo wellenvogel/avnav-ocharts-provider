@@ -64,7 +64,7 @@ wxString CacheFiller::ToJson(){
             PF_BOOL(isStarted),
             StringHelper::safeJsonString(currentPrefillSet),
             currentPrefillZoom,
-            maxPrefillZoom,
+            (int)maxPrefillZoom,
             numSets,
             currentSetIndex);
     PrefillTiles::iterator si;
