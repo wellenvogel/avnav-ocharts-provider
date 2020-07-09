@@ -133,7 +133,7 @@ private:
         wxDateTime now(tv.tv_sec);
         if (prefix == wxEmptyString) prefix=TMP_PREFIX;
         return wxString::Format(_T("%s%s-%ld"),
-            prefix,now.Format("%Y-%m-%d-%H:%M:%S"),(long)(tv.tv_usec));
+            prefix,now.Format("%Y-%m-%d-%H-%M-%S"),(long)(tv.tv_usec));
     }
     
     class ZipChartInfo{
