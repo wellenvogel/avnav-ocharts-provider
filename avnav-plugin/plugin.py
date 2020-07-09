@@ -67,7 +67,12 @@ class Plugin:
         },
         {
           'name':'chartdir',
-          'description':'temp location for charts',
+          'description':'location for additional charts',
+          'default': ''
+        },
+        {
+          'name': 'uploadDir',
+          'description': 'location for chart upload',
           'default': ''
         },
         {
@@ -257,6 +262,8 @@ class Plugin:
                "-e", self.config['exeDir']]
     if self.config['memPercent'] != '':
       cmdline= cmdline + ["-x",self.config['memPercent']]
+    if self.config['uploadDir'] != '':
+      cmdline= cmdline + ["-u",self.config['uploadDir']]
     cmdline=cmdline + [ocpndir,
                s57dir, configdir, str(self.config['port'])]+chartdirs
     return cmdline
