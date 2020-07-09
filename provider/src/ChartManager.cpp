@@ -415,6 +415,14 @@ bool ChartManager::DeleteChartSet(wxString key){
         LOG_ERROR(wxT("chart set %s not found"),key);
         return false;
     }
+    if (filler != NULL){
+        LOG_INFO(wxT("ChartManager: stopping cache filler"));
+        RemoveItem("cacheFiller");
+        filler->stop();
+        filler->join();
+        delete filler;
+        filler=NULL;
+    }
     ChartSet::SetState oldState=set->state;
     bool changed=set->SetEnabled(false);
     set->state=ChartSet::STATE_DELETED;
@@ -430,6 +438,10 @@ bool ChartManager::DeleteChartSet(wxString key){
         //TODO: find a strategy to safely delete the chart set
         chartSets.erase(key);
     }
+    LOG_INFO(wxT("ChartManager: starting filler"));
+    filler=new CacheFiller(maxPrefillPerSet,maxPrefillZoom,this);
+    AddItem("cacheFiller",filler);
+    filler->start();
     return true;
 }
 
