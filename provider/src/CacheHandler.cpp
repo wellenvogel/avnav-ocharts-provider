@@ -472,7 +472,6 @@ CacheEntry * CacheHandler::FindEntry(MD5Name name, bool readData) {
         wxFileOffset s = cacheFile->Seek(diskEntry.offset);
         if (s != diskEntry.offset) {
             LOG_ERROR(wxT("cannot load cache entry from disk , invalid seek %s"), name.ToString());
-            e->Unref();
             return NULL;
         }
         if (!readAndCheckHeader(cacheFileName, cacheFile, &rheader)) {
