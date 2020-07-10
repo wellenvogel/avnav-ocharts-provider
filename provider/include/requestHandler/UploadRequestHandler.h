@@ -219,6 +219,38 @@ private:
         return wxEmptyString;
     }
     
+    wxString CopyFile(wxString src,wxString dest){
+        wxFile inFile(src);
+        wxFile outFile(dest,wxFile::write);
+        if (!inFile.IsOpened()){
+            return wxString::Format(wxT("unable to open src file for copy %s"),src);
+        }
+        if (!outFile.IsOpened()){
+            return wxString::Format(wxT("unable to open dest file for copy %s"),src);
+        }
+        char buf[4096];
+        for (;;){
+            ssize_t count = inFile.Read(buf, WXSIZEOF(buf));
+            if ( count == wxInvalidOffset )
+                return wxString::Format(wxT("error reading file %s"),src);
+
+            // end of file?
+            if ( !count )
+                break;
+
+            if ( outFile.Write(buf, count) < (size_t)count )
+                return wxString::Format(wxT("unable to write %d bytes to %s"),(int)count,dest);
+            
+        }        
+        if (! inFile.Close()){
+            return wxString::Format(wxT("unable to close %s after reading"),src);
+        }
+        if (! outFile.Close()){
+            return wxString::Format(wxT("unable to close %s after writing"),dest);
+        }
+        return wxEmptyString;
+    }
+    
 public:
     /**
      * create a request handler
@@ -352,10 +384,11 @@ public:
             newChartInfo.Close();
             //copy the chart to the temp dir
             wxFileName tempFile(tempDir.GetFullPath(),chartFileName);
-            if (!wxCopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+chartFileName,tempFile.GetFullPath())){
+            wxString copyError=CopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+chartFileName,tempFile.GetFullPath());
+            if (copyError != wxEmptyString){
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
-                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy chart to temp dir %s"),chartFileName));                
+                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy chart to temp dir %s: %s"),chartFileName,copyError));                
             }
                         
             TryMessage *trymsg=new TryMessage(manager,tempFile);
