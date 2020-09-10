@@ -33,7 +33,8 @@
 #include "MD5.h"
 #include "SystemHelper.h"
 
-#define MAX_DATALEN 100000
+//max len must be 256x256x4 plus png overhead
+#define MAX_DATALEN 300000
 typedef struct{
     char            magic[8];
     char            headerLen; //len of complete header
