@@ -607,9 +607,7 @@ private:
             memoryLimit=systemKb*memsizePercent/100;
         }
         else{
-            if (memAvail >= 0){
-                memoryLimit=memAvail;
-            }
+            memoryLimit=150000; //we set a limit that is too small and start with our internal min
         }
         if (memoryLimit != 0){
             chartCacheKb=memoryLimit-chartManager->GetMaxCacheSizeKb();
