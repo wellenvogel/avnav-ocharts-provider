@@ -140,8 +140,9 @@ void ChartSet::UpdateSettings(bool removeCacheFile){
     AddItem("cacheWriter",rdwr);
 }
 
-void ChartSet::AddCandidate(wxString fileName){
-    setToken.AddFileInfo(fileName);
+void ChartSet::AddCandidate(ChartCandidate candidate){
+    candidates.push_back(candidate);
+    setToken.AddFileInfo(candidate.fileName);
     numCandidates++;
 }
 void ChartSet::AddError(wxString fileName){

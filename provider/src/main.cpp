@@ -117,6 +117,7 @@ static const wxCmdLineEntryDesc g_cmdLineDesc [] = {
     {wxCMD_LINE_OPTION,"p", "parent","parent pid, stop if not available", wxCMD_LINE_VAL_NUMBER, wxCMD_LINE_PARAM_OPTIONAL},
     {wxCMD_LINE_OPTION,"e", "exe","directory for oeserverd (default: /usr/bin)", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
     {wxCMD_LINE_OPTION,"u", "uploadDir","directory for chart upload (default: configDir/charts)", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+    {wxCMD_LINE_SWITCH,"n", "noChartScan","use chart cache info if available (fast start)"},
     
     {wxCMD_LINE_PARAM, NULL, NULL, "", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_MULTIPLE},
     { wxCMD_LINE_NONE}
@@ -201,6 +202,7 @@ private:
     long parentPid=-1;
     long maxLogLines=50000;
     long maxPrefillZoom=17;
+    bool useChartCache=false;
     ExtensionList extensions={{"*.OESENC",{}}};
     ChartManager *chartManager;
     wxString privateDataDir=wxT("~/.opencpn/");
@@ -242,6 +244,7 @@ public:
         bool hasMemSize=parser.Found("x",&memsizePercent);
         parser.Found("r",&maxPrefillZoom);
         parser.Found("u",&uploadDir);
+        useChartCache=parser.Found("n");
         if (scaleLevel < 0.1 || scaleLevel > 10){
             LOG_ERRORC(_T("invalid scale level %lf"),scaleLevel);
             exit(1);
@@ -408,6 +411,14 @@ private:
         }
 
     };
+    wxFileConfig * OpenChartCache(wxString configDir,bool forReading){
+       wxFileName fn(configDir,wxT("chartcache.conf"));
+       if (forReading && !fn.FileExists()) return NULL;
+       if (! forReading && fn.FileExists()){
+          wxRemoveFile(fn.GetFullPath()); 
+       }
+       return new wxFileConfig(wxEmptyString,wxEmptyString,fn.GetFullPath());
+    }
     int run(wxArrayString args) {
        
         int argc = args.GetCount();
@@ -629,18 +640,39 @@ private:
                     chartCacheKb);
             memoryLimit=chartCacheKb;
         }
-        //the second parsing needs to be done in one step as the states
-        //are set when done - but this is ok as we do not need to distinguish
-        //between uploaded and external charts any more
-        //so we add all into chartlist
-        for (size_t i=0;i<uploadChartList.Count();i++){
-            chartlist.Add(uploadChartList.Item(i));
+        bool mustReadCharts=true;
+        //TODO: handle fast start
+        if (useChartCache){
+            LOG_INFO(wxT("fast start: using chart info cache"));
+            wxFileConfig *readCache=OpenChartCache(privateDataDir,true);
+            if (readCache == NULL){
+                LOG_ERROR(wxT("no chart info cache found"));
+            }
+            else{
+                mustReadCharts=!chartManager->ReadChartCache(readCache);
+                if (mustReadCharts){
+                    LOG_INFO(wxT("chart info cache not complete, must parse charts anyway"));
+                }
+            }
         }
-        numCharts=chartManager->ReadCharts(chartlist,memoryLimit);
-        if (numCharts < 1) {
-            LOG_INFOC(_T("no charts loaded"));
+
+        if (mustReadCharts) {
+            //the second parsing needs to be done in one step as the states
+            //are set when done - but this is ok as we do not need to distinguish
+            //between uploaded and external charts any more
+            //so we add all into chartlist
+            for (size_t i = 0; i < uploadChartList.Count(); i++) {
+                chartlist.Add(uploadChartList.Item(i));
+            }
+            numCharts = chartManager->ReadCharts(chartlist, memoryLimit);
+            if (numCharts < 1) {
+                LOG_INFOC(_T("no charts loaded"));
+            }
+            LOG_INFO(wxT("loaded %d charts"), numCharts);
+            wxFileConfig *cache = OpenChartCache(privateDataDir, false);
+            chartManager->WriteChartCache(cache);
+            delete cache;
         }
-        LOG_INFO(wxT("loaded %d charts"),numCharts);
         int ourKb=0;
         SystemHelper::GetMemInfo(NULL,&ourKb);
         LOG_INFO(wxT("memory after reading charts: %dkb"),ourKb);

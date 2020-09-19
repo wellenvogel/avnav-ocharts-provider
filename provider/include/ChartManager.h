@@ -146,6 +146,20 @@ public:
     ManagerState        GetState();
     unsigned long       GetCurrentCacheSizeKb();
     unsigned long       GetMaxCacheSizeKb();
+    wxString            GetCacheFileName(wxString fileName);
+    /**
+     * write out extensions and native scale for all charts
+     * @param config
+     * @return true if written
+     */
+    bool                WriteChartCache(wxFileConfig *config);
+    /**
+     * read extension an native scale from the cache file
+     * is used as a replacement for ReadCharts on fast start
+     * @param config
+     * @return 
+     */
+    bool                ReadChartCache(wxFileConfig *config);
 private:
     std::mutex          statusLock;
     ChartInfoQueue      openCharts;

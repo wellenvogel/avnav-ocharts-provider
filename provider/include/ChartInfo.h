@@ -150,6 +150,9 @@ public:
     bool        Close();
     wxString    GetFileName(){return filename;}
     int         FillInfo(const ZoomLevelScales *);
+    ExtentPI    GetExtent(){return extent;}
+    void        SetExtent(ExtentPI ext){extent=ext;}
+    void        SetNativeScale(int sc){nativeScale=sc;}
     
 private:
     long    lastRender;

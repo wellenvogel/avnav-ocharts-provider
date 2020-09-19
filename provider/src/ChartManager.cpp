@@ -188,7 +188,8 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
     ChartSet *set=findOrCreateChartSet(chartFile,!setsOnly,canDeleteSet);
     if (set == NULL) return false;
     if (setsOnly) {
-        set->AddCandidate(chartFile.GetFullPath());
+        ChartSet::ChartCandidate candidate(ext,chartFile.GetFullPath());
+        set->AddCandidate(candidate);
         return true;
     }
     ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath());
@@ -643,3 +644,112 @@ bool ChartManager::OpenChart(ChartInfo* chart){
     CheckMemoryLimit();
     return true;
 }
+
+wxString ChartManager::GetCacheFileName(wxString fileName){
+    wxFileName name=wxFileName::FileName(fileName);
+    return StringHelper::SanitizeString(name.GetFullName());
+}
+
+bool ChartManager::WriteChartCache(wxFileConfig* config){
+    LOG_INFO(wxT("writing chart cache info"));
+    if (config == NULL){
+        LOG_ERROR(wxT("chart cache file not open in write chart cache"));
+        return false;
+    }
+    ChartSetMap::iterator it;
+    int numWritten=0;
+    for (it=chartSets.begin();it != chartSets.end();it++){
+        ChartSet *set=it->second;
+        if (!set->IsEnabled()) continue;
+        ChartList::InfoList::iterator cit;
+        ChartList::InfoList charts=set->charts->GetAllCharts();
+        for (cit=charts.begin();cit!=charts.end();cit++){
+            ChartInfo *info=(*cit);
+            LOG_DEBUG("writing cache entry for %s",info->GetFileName());
+            config->SetPath(wxT("/")+set->GetKey());
+            config->SetPath(GetCacheFileName(info->GetFileName()));
+            config->Write("scale",info->GetNativeScale());
+            ExtentPI extent=info->GetExtent();
+            config->Write("slat",extent.SLAT);
+            config->Write("wlon",extent.WLON);
+            config->Write("nlat",extent.NLAT);
+            config->Write("elon",extent.ELON);
+            numWritten++;
+        }
+    }
+    config->Flush();
+    LOG_INFO("written %d cache entries",numWritten);
+    return true;
+}
+bool ChartManager::ReadChartCache(wxFileConfig* config){
+    LOG_INFO(wxT("reading chart info cache"));
+    if (config == NULL){
+        LOG_ERROR(wxT("chart cache file not open in read chart cache"));
+        return false;
+    }
+    ChartSetMap::iterator it;
+    int numRead=0;
+    //we read in 2 rounds
+    //first we only check if we can find all, in the second we really set the 
+    //infos
+    //this way we can safely read the charts completely if we fail in the first round
+    for (int round = 0; round <= 1; round++) {
+        for (it = chartSets.begin(); it != chartSets.end(); it++) {
+            ChartSet *set = it->second;
+            if (!set->IsEnabled()) continue;
+            ChartSet::CandidateList::iterator cit;
+            ChartSet::CandidateList charts = set->GetCandidates();
+            for (cit = charts.begin(); cit != charts.end(); cit++) {
+                ChartSet::ChartCandidate candidate = (*cit);
+                ExtensionList::iterator it=extensions->find(candidate.extension);
+                if (it == extensions->end()){
+                    LOG_ERROR(wxT("unknown extension for chart file %s when reading cache, skip"),candidate.fileName);
+                    continue;
+                }
+                LOG_DEBUG("reading cache entry for %s round %d", candidate.fileName,round);
+                config->SetPath(wxT("/") + set->GetKey());
+                config->SetPath(GetCacheFileName(candidate.fileName));
+                if (!config->HasEntry("scale")) {
+                    LOG_ERROR("missing scale entry for %s", candidate.fileName);
+                    return false;
+                }
+                if (!config->HasEntry("slat")) {
+                    LOG_ERROR("missing slat entry for %s", candidate.fileName);
+                    return false;
+                }
+                if (!config->HasEntry("wlon")) {
+                    LOG_ERROR("missing wlon entry for %s", candidate.fileName);
+                    return false;
+                }
+                if (!config->HasEntry("nlat")) {
+                    LOG_ERROR("missing nlat entry for %s", candidate.fileName);
+                    return false;
+                }
+                if (!config->HasEntry("elon")) {
+                    LOG_ERROR("missing elon entry for %s", candidate.fileName);
+                    return false;
+                }
+                if (round != 1) continue;
+                ChartInfo *info=new ChartInfo(it->second.classname,candidate.fileName);
+                long nativeScale = -1;
+                config->Read("scale", &nativeScale);
+                ExtentPI extent;
+                config->Read("slat", &extent.SLAT);
+                config->Read("wlon", &extent.WLON);
+                config->Read("nlat", &extent.NLAT);
+                config->Read("elon", &extent.ELON);
+                info->SetExtent(extent);
+                info->SetNativeScale(nativeScale);
+                set->charts->AddChart(info);
+                numRead++;
+            }
+        }
+    }
+    for (it=chartSets.begin();it != chartSets.end();it++){
+        if (it->second->IsEnabled()) it->second->SetReady();
+    }
+    state=STATE_READY;
+    LOG_INFO(wxString::Format("read %d chart info cache entries",numRead));
+    return true;
+}
+

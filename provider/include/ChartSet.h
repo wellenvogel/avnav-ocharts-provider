@@ -49,7 +49,18 @@ public:
         STATE_READY,
         STATE_DELETED  //as we cannot delete a set we set this to deleted...
     } SetState;
+    class ChartCandidate{
+    public:
+        wxString fileName;
+        wxString extension;
+        ChartCandidate(wxString extension,wxString fileName){
+            this->extension=extension;
+            this->fileName=fileName;
+        }
+            
+    };
     typedef std::vector<TileInfo> RequestList;
+    typedef std::vector<ChartCandidate> CandidateList;
     ChartSetInfo        info;
     ChartList           *charts;
     CacheHandler        *cache;
@@ -73,7 +84,7 @@ public:
      */
     bool                SetEnabled(bool enabled=true,wxString disabledBy=wxEmptyString);
     bool                IsEnabled(){return active;}
-    void                AddCandidate(wxString fileName);
+    void                AddCandidate(ChartCandidate candidate);
     void                AddError(wxString fileName);
     void                StartParsing(){state=STATE_PARSING;}
     void                SetZoomLevels();
@@ -91,6 +102,7 @@ public:
     double              GetMppForZoom(int zoom);
     void                ResetOpenErrors(){openErrors=0;}
     bool                AllowOpenRetry();
+    CandidateList       GetCandidates(){ return candidates;}
     
 
     
@@ -113,6 +125,7 @@ private:
     bool                canDelete;
     wxString            disabledBy;
     int                 openErrors; //consecutive openErrors, disable retry when limit reached
+    CandidateList       candidates;
 };
 
 
