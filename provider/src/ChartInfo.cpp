@@ -31,6 +31,7 @@
 #include <wx/dcmemory.h>
 #include <wx/time.h>
 #include "Logger.h"
+#include "StringHelper.h"
 
 
 ZoomLevelScales::ZoomLevelScales(double scaleLevel) {
@@ -71,6 +72,7 @@ ChartInfo::ChartInfo(wxString className,wxString fileName) {
     this->classname=className;
     this->chart=NULL;
     this->filename=fileName;
+    this->isValid=false;
 }
 
 ChartInfo::~ChartInfo() {
@@ -126,6 +128,7 @@ int ChartInfo::Init(bool allowRetry) {
     if (! Reopen(false,allowRetry)) return PI_INIT_FAIL_REMOVE;
     nativeScale=chart->GetNativeScale();
     chart->GetChartExtent(&extent);
+    isValid=true;
     return PI_INIT_OK;
 }
 
@@ -145,8 +148,8 @@ wxString ChartInfo::GetXmlBounds(){
 }
 
 wxString ChartInfo::ToString(){
-    return wxString::Format(_T("Chart file=%s,scale=%d,nlat=%f,wlon=%f,slat=%f,elon=%f,zoom=%d,bounds=%s"),
-            filename,nativeScale,extent.NLAT,extent.WLON,extent.SLAT,extent.ELON,zoom,GetXmlBounds());
+    return wxString::Format(_T("Chart file=%s,valid=%s,scale=%d,nlat=%f,wlon=%f,slat=%f,elon=%f,zoom=%d,bounds=%s"),
+            filename,PF_BOOL(isValid),nativeScale,extent.NLAT,extent.WLON,extent.SLAT,extent.ELON,zoom,GetXmlBounds());
 }
 
 int ChartInfo::HasTile(LatLon &northwest,LatLon &southeast){
@@ -209,4 +212,10 @@ bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &
     wxMemoryDC tempDC(bitmap);
     out.Blit(0,0,TILE_SIZE,TILE_SIZE,&tempDC,0,0,wxCOPY,true);
     return true;
+}
+
+void ChartInfo::FromCache(int nativeScale, ExtentPI extent){
+    this->nativeScale=nativeScale;
+    this->extent=extent;
+    this->isValid=true;
 }

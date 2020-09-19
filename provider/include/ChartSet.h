@@ -76,7 +76,7 @@ public:
     wxString            GetKey(){
                             return info.name;
                         }
-    bool                IsActive(){ return active && state == STATE_READY && (charts->GetSize()>0);}
+    bool                IsActive(){ return active && state == STATE_READY && (numValidCharts>0);}
     /**
      * change the enabled/disabled state
      * @param enabled
@@ -88,7 +88,7 @@ public:
     void                AddError(wxString fileName);
     void                StartParsing(){state=STATE_PARSING;}
     void                SetZoomLevels();
-    void                SetReady(){state=STATE_READY;}
+    void                SetReady();
     void                Stop();
     bool                CacheReady();
     bool                CanDelete(){return canDelete;}
@@ -126,6 +126,7 @@ private:
     wxString            disabledBy;
     int                 openErrors; //consecutive openErrors, disable retry when limit reached
     CandidateList       candidates;
+    int                 numValidCharts;   
 };
 
 

@@ -45,6 +45,7 @@ ChartList::~ChartList(){
 }
 void ChartList::AddChart(ChartInfo *chart){
     chartList.push_back(chart);
+    if (! chart->IsValid()) return;
     chart->UpdateBoundings(&boundings);
 }
 
@@ -57,6 +58,9 @@ WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &no
     InfoList::iterator it;
     for (it=chartList.begin();it!= chartList.end();it++){
         ChartInfo *info=(*it);
+        if (! info->IsValid()) {
+            continue;
+        }
         if (info->GetZoom()<minZoom || info->GetZoom()>maxZoom){
             continue;
         }
@@ -89,6 +93,9 @@ void ChartList::UpdateZooms(ZoomLevelScales* scales){
     maxZoom=0;
     for (it=chartList.begin();it!=chartList.end();it++){
         ChartInfo *info=(*it);
+        if (! info->IsValid()) {
+            continue;
+        }
         info->FillInfo(scales);
         if (info->GetZoom() < minZoom) minZoom=info->GetZoom();
         if (info->GetZoom() > maxZoom) maxZoom=info->GetZoom();
@@ -100,6 +107,9 @@ ChartList::InfoList ChartList::GetZoomCharts(int zoom){
     InfoList::iterator it;
     for (it=chartList.begin();it!=chartList.end();it++){
         ChartInfo *info=(*it);
+        if (! info->IsValid()) {
+            continue;
+        }
         if (info->GetZoom() == zoom) rt.push_back(info);
     }
     return rt;
@@ -118,6 +128,18 @@ wxString ChartList::ToJson(){
             GetSize(),
             GetMinZoom(),
             GetMaxZoom());
+    return rt;
+}
+int ChartList::NumValidCharts(){
+    int rt=0;
+    InfoList::iterator it;
+    for (it=chartList.begin();it!=chartList.end();it++){
+        ChartInfo *info=(*it);
+        if (! info->IsValid()) {
+            continue;
+        }
+        rt++;
+    }
     return rt;
 }
 

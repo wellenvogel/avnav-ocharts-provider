@@ -123,6 +123,7 @@ private:
     int             ymax;
     int             nativeScale;
     wxMutex         renderLock;
+    bool            isValid;
          
 public:
     ChartInfo(wxString className,wxString fileName);
@@ -151,8 +152,8 @@ public:
     wxString    GetFileName(){return filename;}
     int         FillInfo(const ZoomLevelScales *);
     ExtentPI    GetExtent(){return extent;}
-    void        SetExtent(ExtentPI ext){extent=ext;}
-    void        SetNativeScale(int sc){nativeScale=sc;}
+    void        FromCache(int nativeScale,ExtentPI extent);
+    bool        IsValid(){return isValid;}
     
 private:
     long    lastRender;

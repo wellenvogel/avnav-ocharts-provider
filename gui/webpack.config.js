@@ -51,6 +51,7 @@ var formatDate = function (date) {
 
 };
 var TESTSERVER=process.env.TESTSERVER||"172.17.0.2";
+var TESTPORT=process.env.TESTPORT||"8082";
 module.exports = function(env) {
     return {
         context: path.join(__dirname, 'src'),
@@ -130,9 +131,9 @@ module.exports = function(env) {
         mode: isProduction?'production':'development',
         devServer:{
             proxy:{
-                '/status':'http://'+TESTSERVER+':8082',
-                '/settings': 'http://'+TESTSERVER+':8082',
-                '/upload': 'http://'+TESTSERVER+':8082'
+                '/status':'http://'+TESTSERVER+':'+TESTPORT,
+                '/settings': 'http://'+TESTSERVER+':'+TESTPORT,
+                '/upload': 'http://'+TESTSERVER+':'+TESTPORT
             }
         }
     }

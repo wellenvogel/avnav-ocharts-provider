@@ -38,7 +38,7 @@ const ChartSetStatus=(props)=>{
     if (!props.active && status !== "DELETED"){
         status="INACTIVE";
     }
-    if (props.numCandidates > 0 && charts.numCharts == 0 && props.errors > 0 && status == "READY"){
+    if (props.numCandidates > 0 && props.numValidCharts == 0 && props.errors > 0 && status == "READY"){
         status="ERROR";
     }
     return(
@@ -50,7 +50,7 @@ const ChartSetStatus=(props)=>{
                 }
             >
             <StatusLine label="Status" value={status} icon={true}/>
-            <StatusLine label="Charts" value={charts.numCharts+", minZoom="+charts.minZoom+", maxZoom="+charts.maxZoom}/>
+            <StatusLine label="Charts" value={props.numValidCharts+", minZoom="+charts.minZoom+", maxZoom="+charts.maxZoom}/>
             <StatusLine label="Directory" value={info.directory}/>
             <StatusLine label="Info"  value={"Version="+info.version+", ValidTo="+info.validTo}/>
             {props.showDetails &&

@@ -56,6 +56,7 @@ ChartSet::ChartSet(ChartSetInfo info, SettingsManager *manager,bool canDelete){
         AddItem("charts",charts);
         int cacheId=CACHE_VERSION_IDENTIFIER;
         MD5_ADD_VALUE(setToken,cacheId);
+        numValidCharts=0;
     }
 
 wxString ChartSet::GetCacheFileName(){
@@ -260,14 +261,20 @@ wxString ChartSet::LocalJson(){
             JSON_IV(ready,%s) ",\n"
             JSON_IV(errors,%d) ",\n"
             JSON_SV(disabledBy,%s) ",\n"
-            JSON_IV(canDelete,%s) "\n",
+            JSON_IV(canDelete,%s) ",\n"
+            JSON_IV(numValidCharts,%d) "\n",
             numCandidates,
             status, 
             PF_BOOL(active),
             PF_BOOL(IsReady()),
             numErrors,
             disabledBy,
-            PF_BOOL(canDelete)
+            PF_BOOL(canDelete),
+            numValidCharts
             );
+}
+void    ChartSet::SetReady(){
+    state=STATE_READY;
+    numValidCharts=charts->NumValidCharts();
 }
 

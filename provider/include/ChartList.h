@@ -52,6 +52,7 @@ public:
     InfoList            GetAllCharts();
     void                UpdateZooms(ZoomLevelScales *scales);
     virtual wxString    ToJson();
+    int                 NumValidCharts();
 private:
     InfoList            chartList;
     int                 minZoom;

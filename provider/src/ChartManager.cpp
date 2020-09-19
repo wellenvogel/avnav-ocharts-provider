@@ -205,7 +205,8 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
         LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);        
         return true;
     } else {
-        LOG_ERROR(_T("loading chart failed wit code %d"), rt);        
+        LOG_ERROR(_T("loading chart failed wit code %d"), rt); 
+        set->charts->AddChart(info);
         set->AddError(chartFile.GetFullPath());
         LOG_ERROR(_T("unable to load chart with retry"));
         return false;
@@ -627,6 +628,7 @@ void ChartManager::CloseDisabled(){
 //must be called from main thread
 bool ChartManager::OpenChart(ChartInfo* chart){
     if (chart == NULL) return false;
+    if (!chart->IsValid()) return false;
     if (chart->IsOpen()) return true;
     if (maxOpenCharts > 0){
         while (openCharts.size() >= (size_t)maxOpenCharts){
@@ -668,12 +670,15 @@ bool ChartManager::WriteChartCache(wxFileConfig* config){
             LOG_DEBUG("writing cache entry for %s",info->GetFileName());
             config->SetPath(wxT("/")+set->GetKey());
             config->SetPath(GetCacheFileName(info->GetFileName()));
-            config->Write("scale",info->GetNativeScale());
-            ExtentPI extent=info->GetExtent();
-            config->Write("slat",extent.SLAT);
-            config->Write("wlon",extent.WLON);
-            config->Write("nlat",extent.NLAT);
-            config->Write("elon",extent.ELON);
+            config->Write("valid",info->IsValid());
+            if (info->IsValid()) {
+                config->Write("scale", info->GetNativeScale());
+                ExtentPI extent = info->GetExtent();
+                config->Write("slat", extent.SLAT);
+                config->Write("wlon", extent.WLON);
+                config->Write("nlat", extent.NLAT);
+                config->Write("elon", extent.ELON);
+            }
             numWritten++;
         }
     }
@@ -709,37 +714,49 @@ bool ChartManager::ReadChartCache(wxFileConfig* config){
                 LOG_DEBUG("reading cache entry for %s round %d", candidate.fileName,round);
                 config->SetPath(wxT("/") + set->GetKey());
                 config->SetPath(GetCacheFileName(candidate.fileName));
-                if (!config->HasEntry("scale")) {
-                    LOG_ERROR("missing scale entry for %s", candidate.fileName);
+                if (! config->HasEntry("valid")){
+                    LOG_ERROR("missing valid entry for %s", candidate.fileName);
                     return false;
                 }
-                if (!config->HasEntry("slat")) {
-                    LOG_ERROR("missing slat entry for %s", candidate.fileName);
-                    return false;
-                }
-                if (!config->HasEntry("wlon")) {
-                    LOG_ERROR("missing wlon entry for %s", candidate.fileName);
-                    return false;
-                }
-                if (!config->HasEntry("nlat")) {
-                    LOG_ERROR("missing nlat entry for %s", candidate.fileName);
-                    return false;
-                }
-                if (!config->HasEntry("elon")) {
-                    LOG_ERROR("missing elon entry for %s", candidate.fileName);
-                    return false;
+                bool valid=false;
+                config->Read("valid",&valid);
+                if (valid) {
+                    if (!config->HasEntry("scale")) {
+                        LOG_ERROR("missing scale entry for %s", candidate.fileName);
+                        return false;
+                    }
+                    if (!config->HasEntry("slat")) {
+                        LOG_ERROR("missing slat entry for %s", candidate.fileName);
+                        return false;
+                    }
+                    if (!config->HasEntry("wlon")) {
+                        LOG_ERROR("missing wlon entry for %s", candidate.fileName);
+                        return false;
+                    }
+                    if (!config->HasEntry("nlat")) {
+                        LOG_ERROR("missing nlat entry for %s", candidate.fileName);
+                        return false;
+                    }
+                    if (!config->HasEntry("elon")) {
+                        LOG_ERROR("missing elon entry for %s", candidate.fileName);
+                        return false;
+                    }
                 }
                 if (round != 1) continue;
                 ChartInfo *info=new ChartInfo(it->second.classname,candidate.fileName);
-                long nativeScale = -1;
-                config->Read("scale", &nativeScale);
-                ExtentPI extent;
-                config->Read("slat", &extent.SLAT);
-                config->Read("wlon", &extent.WLON);
-                config->Read("nlat", &extent.NLAT);
-                config->Read("elon", &extent.ELON);
-                info->SetExtent(extent);
-                info->SetNativeScale(nativeScale);
+                if (valid){
+                    long nativeScale = -1;
+                    config->Read("scale", &nativeScale);
+                    ExtentPI extent;
+                    config->Read("slat", &extent.SLAT);
+                    config->Read("wlon", &extent.WLON);
+                    config->Read("nlat", &extent.NLAT);
+                    config->Read("elon", &extent.ELON);
+                    info->FromCache(nativeScale,extent);
+                }
+                else {
+                    set->AddError(candidate.fileName);
+                }
                 set->charts->AddChart(info);
                 numRead++;
             }
