@@ -292,4 +292,7 @@ void ChartSet::GetOverview(int& minZoom, int& maxZoom, BoundingBox& boundings){
 WeightedChartList  ChartSet::FindChartForTile(int minZoom,int maxZoom,LatLon &northwest,LatLon &southeast,int goUp){
     return charts->FindChartForTile(minZoom,maxZoom,northwest,southeast,goUp);
 }
+wxString ChartSet::GetSetToken(){
+    return setToken.GetHex();
+}
 

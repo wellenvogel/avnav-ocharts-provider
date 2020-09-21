@@ -663,6 +663,9 @@ bool ChartManager::WriteChartCache(wxFileConfig* config){
     for (it=chartSets.begin();it != chartSets.end();it++){
         ChartSet *set=it->second;
         if (!set->IsEnabled()) continue;
+        LOG_DEBUG("writing cache entry for set %s",set->GetKey());
+        config->SetPath(wxT("/")+set->GetKey());
+        config->Write("token",set->GetSetToken());
         ChartList::InfoList::iterator cit;
         ChartList::InfoList charts=set->GetAllCharts();
         for (cit=charts.begin();cit!=charts.end();cit++){
@@ -703,6 +706,20 @@ bool ChartManager::ReadChartCache(wxFileConfig* config){
             if (!set->IsEnabled()) continue;
             ChartSet::CandidateList::iterator cit;
             ChartSet::CandidateList charts = set->GetCandidates();
+            config->SetPath(wxT("/")+set->GetKey());
+            if (! config->HasEntry("token")){
+                LOG_ERROR("missing entry token for chart set %s",set->GetKey());
+                return false;
+            }
+            wxString cacheToken;
+            cacheToken=config->Read("token","");
+            if (cacheToken != set->GetSetToken()){
+                LOG_ERROR("set token has changed for set %s (cache=%s,current=%s)",
+                        set->GetKey(),
+                        cacheToken,set->GetSetToken()
+                        );
+                return false;
+            }
             for (cit = charts.begin(); cit != charts.end(); cit++) {
                 ChartSet::ChartCandidate candidate = (*cit);
                 ExtensionList::iterator it=extensions->find(candidate.extension);

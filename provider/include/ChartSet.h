@@ -108,6 +108,7 @@ public:
     ChartList::InfoList GetAllCharts(){return charts->GetAllCharts();}
     ChartList::InfoList GetZoomCharts(int zoom){return charts->GetZoomCharts(zoom);}
     int                 GetNumValidCharts(){return numValidCharts;}
+    wxString            GetSetToken();
     
 
     
