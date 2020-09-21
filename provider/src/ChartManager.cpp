@@ -779,6 +779,7 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config){
         }
     }
     for (it=chartSets.begin();it != chartSets.end();it++){
+        it->second->SetZoomLevels();
         if (it->second->IsEnabled()) it->second->SetReady();
     }
     state=STATE_READY;

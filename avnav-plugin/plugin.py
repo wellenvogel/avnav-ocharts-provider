@@ -259,7 +259,8 @@ class Plugin:
                "-c",self.config['cacheSize'],
                "-f",self.config['diskCacheSize'],
                "-r",self.config['prefillZoom'],
-               "-e", self.config['exeDir']]
+               "-e", self.config['exeDir'],
+               "-n"]
     if self.config['memPercent'] != '':
       cmdline= cmdline + ["-x",self.config['memPercent']]
     if self.config['uploadDir'] != '':
