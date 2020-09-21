@@ -411,8 +411,8 @@ private:
         }
 
     };
-    wxFileConfig * OpenChartCache(wxString configDir,bool forReading){
-       wxFileName fn(configDir,wxT("chartcache.conf"));
+    wxFileConfig * OpenChartInfoCache(wxString configDir,bool forReading){
+       wxFileName fn(configDir,wxT("chartinfocache.conf"));
        if (forReading && !fn.FileExists()) return NULL;
        if (! forReading && fn.FileExists()){
           wxRemoveFile(fn.GetFullPath()); 
@@ -644,12 +644,12 @@ private:
         //TODO: handle fast start
         if (useChartCache){
             LOG_INFO(wxT("fast start: using chart info cache"));
-            wxFileConfig *readCache=OpenChartCache(privateDataDir,true);
+            wxFileConfig *readCache=OpenChartInfoCache(privateDataDir,true);
             if (readCache == NULL){
                 LOG_ERROR(wxT("no chart info cache found"));
             }
             else{
-                mustReadCharts=!chartManager->ReadChartCache(readCache);
+                mustReadCharts=!chartManager->ReadChartInfoCache(readCache);
                 if (mustReadCharts){
                     LOG_INFO(wxT("chart info cache not complete, must parse charts anyway"));
                 }
@@ -669,8 +669,8 @@ private:
                 LOG_INFOC(_T("no charts loaded"));
             }
             LOG_INFO(wxT("loaded %d charts"), numCharts);
-            wxFileConfig *cache = OpenChartCache(privateDataDir, false);
-            chartManager->WriteChartCache(cache);
+            wxFileConfig *cache = OpenChartInfoCache(privateDataDir, false);
+            chartManager->WriteChartInfoCache(cache);
             delete cache;
         }
         int ourKb=0;

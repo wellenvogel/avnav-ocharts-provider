@@ -152,14 +152,14 @@ public:
      * @param config
      * @return true if written
      */
-    bool                WriteChartCache(wxFileConfig *config);
+    bool                WriteChartInfoCache(wxFileConfig *config);
     /**
      * read extension an native scale from the cache file
      * is used as a replacement for ReadCharts on fast start
      * @param config
      * @return 
      */
-    bool                ReadChartCache(wxFileConfig *config);
+    bool                ReadChartInfoCache(wxFileConfig *config);
 private:
     std::mutex          statusLock;
     ChartInfoQueue      openCharts;

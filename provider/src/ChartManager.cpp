@@ -652,10 +652,10 @@ wxString ChartManager::GetCacheFileName(wxString fileName){
     return StringHelper::SanitizeString(name.GetFullName());
 }
 
-bool ChartManager::WriteChartCache(wxFileConfig* config){
-    LOG_INFO(wxT("writing chart cache info"));
+bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
+    LOG_INFO(wxT("writing chart info cache"));
     if (config == NULL){
-        LOG_ERROR(wxT("chart cache file not open in write chart cache"));
+        LOG_ERROR(wxT("chart info cache file not open in write chart cache"));
         return false;
     }
     ChartSetMap::iterator it;
@@ -663,14 +663,14 @@ bool ChartManager::WriteChartCache(wxFileConfig* config){
     for (it=chartSets.begin();it != chartSets.end();it++){
         ChartSet *set=it->second;
         if (!set->IsEnabled()) continue;
-        LOG_DEBUG("writing cache entry for set %s",set->GetKey());
+        LOG_DEBUG("writing chart info cache entry for set %s",set->GetKey());
         config->SetPath(wxT("/")+set->GetKey());
         config->Write("token",set->GetSetToken());
         ChartList::InfoList::iterator cit;
         ChartList::InfoList charts=set->GetAllCharts();
         for (cit=charts.begin();cit!=charts.end();cit++){
             ChartInfo *info=(*cit);
-            LOG_DEBUG("writing cache entry for %s",info->GetFileName());
+            LOG_DEBUG("writing chart info cache entry for %s",info->GetFileName());
             config->SetPath(wxT("/")+set->GetKey());
             config->SetPath(GetCacheFileName(info->GetFileName()));
             config->Write("valid",info->IsValid());
@@ -686,13 +686,13 @@ bool ChartManager::WriteChartCache(wxFileConfig* config){
         }
     }
     config->Flush();
-    LOG_INFO("written %d cache entries",numWritten);
+    LOG_INFO("written %d chart info cache entries",numWritten);
     return true;
 }
-bool ChartManager::ReadChartCache(wxFileConfig* config){
+bool ChartManager::ReadChartInfoCache(wxFileConfig* config){
     LOG_INFO(wxT("reading chart info cache"));
     if (config == NULL){
-        LOG_ERROR(wxT("chart cache file not open in read chart cache"));
+        LOG_ERROR(wxT("chart cache file not open in read chart info cache"));
         return false;
     }
     ChartSetMap::iterator it;
@@ -708,7 +708,7 @@ bool ChartManager::ReadChartCache(wxFileConfig* config){
             ChartSet::CandidateList charts = set->GetCandidates();
             config->SetPath(wxT("/")+set->GetKey());
             if (! config->HasEntry("token")){
-                LOG_ERROR("missing entry token for chart set %s",set->GetKey());
+                LOG_ERROR("missing entry token for chart set %s in chart info cache",set->GetKey());
                 return false;
             }
             wxString cacheToken;
@@ -724,37 +724,37 @@ bool ChartManager::ReadChartCache(wxFileConfig* config){
                 ChartSet::ChartCandidate candidate = (*cit);
                 ExtensionList::iterator it=extensions->find(candidate.extension);
                 if (it == extensions->end()){
-                    LOG_ERROR(wxT("unknown extension for chart file %s when reading cache, skip"),candidate.fileName);
+                    LOG_ERROR(wxT("unknown extension for chart file %s when reading chart info cache, skip"),candidate.fileName);
                     continue;
                 }
-                LOG_DEBUG("reading cache entry for %s round %d", candidate.fileName,round);
+                LOG_DEBUG("reading chart info cache entry for %s round %d", candidate.fileName,round);
                 config->SetPath(wxT("/") + set->GetKey());
                 config->SetPath(GetCacheFileName(candidate.fileName));
                 if (! config->HasEntry("valid")){
-                    LOG_ERROR("missing valid entry for %s", candidate.fileName);
+                    LOG_ERROR("missing valid entry for %s in chart info cache", candidate.fileName);
                     return false;
                 }
                 bool valid=false;
                 config->Read("valid",&valid);
                 if (valid) {
                     if (!config->HasEntry("scale")) {
-                        LOG_ERROR("missing scale entry for %s", candidate.fileName);
+                        LOG_ERROR("missing scale entry for %s in chart info cache", candidate.fileName);
                         return false;
                     }
                     if (!config->HasEntry("slat")) {
-                        LOG_ERROR("missing slat entry for %s", candidate.fileName);
+                        LOG_ERROR("missing slat entry for %s in chart info cache", candidate.fileName);
                         return false;
                     }
                     if (!config->HasEntry("wlon")) {
-                        LOG_ERROR("missing wlon entry for %s", candidate.fileName);
+                        LOG_ERROR("missing wlon entry for %s in chart info cache", candidate.fileName);
                         return false;
                     }
                     if (!config->HasEntry("nlat")) {
-                        LOG_ERROR("missing nlat entry for %s", candidate.fileName);
+                        LOG_ERROR("missing nlat entry for %s in chart info cache", candidate.fileName);
                         return false;
                     }
                     if (!config->HasEntry("elon")) {
-                        LOG_ERROR("missing elon entry for %s", candidate.fileName);
+                        LOG_ERROR("missing elon entry for %s in chart info cache", candidate.fileName);
                         return false;
                     }
                 }
