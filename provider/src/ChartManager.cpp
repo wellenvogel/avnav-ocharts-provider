@@ -199,14 +199,14 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
     LOG_DEBUG(wxT("Memory before chart global=%dkb,local=%dkb"),globalKb,ourKb);
     if ((rt = info->Init(set->AllowOpenRetry())) == PI_INIT_OK) {
         info->Close();
-        set->charts->AddChart(info);
+        set->AddChart(info);
         set->ResetOpenErrors();
         SystemHelper::GetMemInfo(&globalKb, &ourKb);
         LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);        
         return true;
     } else {
         LOG_ERROR(_T("loading chart failed wit code %d"), rt); 
-        set->charts->AddChart(info);
+        set->AddChart(info);
         set->AddError(chartFile.GetFullPath());
         LOG_ERROR(_T("unable to load chart with retry"));
         return false;
@@ -492,7 +492,7 @@ int ChartManager::GetNumCharts(){
     ChartSetMap::iterator it;
     int rt=0;
     for (it=chartSets.begin();it != chartSets.end();it++){
-        rt+=it->second->charts->GetSize();
+        rt+=it->second->GetNumValidCharts();
     }
     return rt;
 }
@@ -603,7 +603,7 @@ void ChartManager::CloseDisabled(){
         ChartSet *set=it->second;
         if (set->IsEnabled()) continue;
         ChartList::InfoList::iterator cit;
-        ChartList::InfoList charts=set->charts->GetAllCharts();
+        ChartList::InfoList charts=set->GetAllCharts();
         for (cit=charts.begin();cit!=charts.end();cit++){
             disabled.insert((*cit));
         }
@@ -664,7 +664,7 @@ bool ChartManager::WriteChartCache(wxFileConfig* config){
         ChartSet *set=it->second;
         if (!set->IsEnabled()) continue;
         ChartList::InfoList::iterator cit;
-        ChartList::InfoList charts=set->charts->GetAllCharts();
+        ChartList::InfoList charts=set->GetAllCharts();
         for (cit=charts.begin();cit!=charts.end();cit++){
             ChartInfo *info=(*cit);
             LOG_DEBUG("writing cache entry for %s",info->GetFileName());
@@ -693,7 +693,6 @@ bool ChartManager::ReadChartCache(wxFileConfig* config){
         return false;
     }
     ChartSetMap::iterator it;
-    int numRead=0;
     //we read in 2 rounds
     //first we only check if we can find all, in the second we really set the 
     //infos
@@ -753,12 +752,12 @@ bool ChartManager::ReadChartCache(wxFileConfig* config){
                     config->Read("nlat", &extent.NLAT);
                     config->Read("elon", &extent.ELON);
                     info->FromCache(nativeScale,extent);
+                    numRead++;
                 }
                 else {
                     set->AddError(candidate.fileName);
                 }
-                set->charts->AddChart(info);
-                numRead++;
+                set->AddChart(info);
             }
         }
     }

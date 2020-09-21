@@ -65,15 +65,15 @@ public:
     const wxString avnavXml=wxT("avnav.xml");
 private:
     TokenHandler *tokenHandler;
-    ChartList *chartList;
     ChartSet  *set;
     wxString name;
     wxString urlPrefix;   
     ChartSetInfo info;
     HTTPResponse *handleOverviewRequest(HTTPRequest *request){
-        int minZoom=chartList->GetMinZoom();
-        int maxZoom=chartList->GetMaxZoom();
-        BoundingBox b=chartList->GetBoundings();       
+        int minZoom;
+        int maxZoom;
+        BoundingBox b;
+        set->GetOverview(minZoom,maxZoom,b);
         wxString data=wxString::Format(AVNAV_FORMAT,
                 name,name,request->serverIp,request->serverPort,urlPrefix,minZoom,maxZoom,
                 b.minLon,b.minLat,b.maxLon,b.maxLat);
@@ -145,7 +145,6 @@ public:
      * @param name url compatible name
      */
     ChartRequestHandler(ChartSet * set,TokenHandler *tk){
-        this->chartList=set->charts;
         this->set=set;
         this->name=set->GetKey();
         this->tokenHandler=tk;

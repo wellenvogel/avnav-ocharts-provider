@@ -278,3 +278,18 @@ void    ChartSet::SetReady(){
     numValidCharts=charts->NumValidCharts();
 }
 
+void ChartSet::AddChart(ChartInfo* info){
+    charts->AddChart(info);
+    if (info->IsValid()){
+        numValidCharts=charts->NumValidCharts();
+    }
+}
+void ChartSet::GetOverview(int& minZoom, int& maxZoom, BoundingBox& boundings){
+    minZoom=charts->GetMinZoom();
+    maxZoom=charts->GetMaxZoom();
+    boundings=charts->GetBoundings();
+}
+WeightedChartList  ChartSet::FindChartForTile(int minZoom,int maxZoom,LatLon &northwest,LatLon &southeast,int goUp){
+    return charts->FindChartForTile(minZoom,maxZoom,northwest,southeast,goUp);
+}
+

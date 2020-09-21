@@ -62,7 +62,6 @@ public:
     typedef std::vector<TileInfo> RequestList;
     typedef std::vector<ChartCandidate> CandidateList;
     ChartSetInfo        info;
-    ChartList           *charts;
     CacheHandler        *cache;
     CacheReaderWriter   *rdwr;
     int                 numCandidates;
@@ -103,11 +102,18 @@ public:
     void                ResetOpenErrors(){openErrors=0;}
     bool                AllowOpenRetry();
     CandidateList       GetCandidates(){ return candidates;}
+    void                AddChart(ChartInfo *info);
+    void                GetOverview(int &minZoom /*out*/, int &maxZoom/*out*/, BoundingBox &boundings/*out*/);
+    WeightedChartList   FindChartForTile(int minZoom,int maxZoom,LatLon &northwest,LatLon &southeast,int goUp=2);
+    ChartList::InfoList GetAllCharts(){return charts->GetAllCharts();}
+    ChartList::InfoList GetZoomCharts(int zoom){return charts->GetZoomCharts(zoom);}
+    int                 GetNumValidCharts(){return numValidCharts;}
     
 
     
     
 private:
+    ChartList           *charts;
     wxString            GetCacheFileName();
     typedef std::map<wxString,TileInfo> RequestMap;
     std::mutex          lock;

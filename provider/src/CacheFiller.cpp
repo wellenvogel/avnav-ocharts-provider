@@ -116,9 +116,12 @@ void CacheFiller::RenderPrefill(ChartSet *currentSet) {
     long numInSet = 0;
     int zoom = 0;
     std::vector<TileBox> boxes;
-    for (zoom = currentSet->charts->GetMinZoom();
-            numInSet < numPerSet && zoom <= currentSet->charts->GetMaxZoom(); zoom++) {
-        ChartList::InfoList zoomCharts=currentSet->charts->GetZoomCharts(zoom);
+    int minZoom,maxZoom;
+    BoundingBox boundings;
+    currentSet->GetOverview(minZoom,maxZoom,boundings);
+    for (zoom = minZoom;
+            numInSet < numPerSet && zoom <= maxZoom; zoom++) {
+        ChartList::InfoList zoomCharts=currentSet->GetZoomCharts(zoom);
         if (shouldStop()) return;
         if (zoomCharts.size() < 1) continue;
         ChartList::InfoList::iterator it;
@@ -165,7 +168,7 @@ void CacheFiller::RenderPrefill(ChartSet *currentSet) {
         }
         if (numInSet > numPerSet) break;
     }
-    if (zoom < currentSet->charts->GetMaxZoom()) {
+    if (zoom < maxZoom) {
         LOG_DEBUG(wxT("CacheFiller %s:  stopped caching on zoom %d as %lld per set is reached"),
                 currentSet->info.name,
                 zoom,
@@ -190,19 +193,22 @@ void CacheFiller::CheckRenderHints() {
     for (csit=sets->begin();csit != sets->end();csit++){
         ChartSet::RequestList renderRequests=csit->second->GetLastRequests();
         ChartSet::RequestList::iterator rit;
+        int minZoom,maxZoom;
+        BoundingBox boundings;
+        csit->second->GetOverview(minZoom,maxZoom,boundings);
         for (rit = renderRequests.begin(); rit != renderRequests.end(); rit++) {
             //one down, current, one up
             for (int zd = 0; zd < 3; zd++) {
                 TileInfo current(*rit);
                 if ( zd == 1){
                     current.zoom--;
-                    if (current.zoom < csit->second->charts->GetMinZoom()) continue;
+                    if (current.zoom < minZoom) continue;
                     current.x=current.x/2;
                     current.y=current.y/2;
                 }
                 if (zd == 2){
                     current.zoom++;
-                    if (current.zoom > csit->second->charts->GetMaxZoom()) continue;
+                    if (current.zoom > maxZoom) continue;
                     current.x=current.x*2;
                     current.y=current.y*2;
                 }

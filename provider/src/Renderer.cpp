@@ -253,13 +253,12 @@ RenderMessage *Renderer::PrepareRenderMessage(ChartSet *set, TileInfo &tile){
     vpoint.lon_max=southeast.lon;
     vpoint.bValid=true;
     vpoint.b_quilt=false;
-    ChartList *list=set->charts;
     double mpp=set->GetMppForZoom(tile.zoom);
     if (mpp <= 0) return NULL;
     RenderMessage *msg=new RenderMessage(tile,set,
             this,manager->GetSettings()->GetCurrentSequence());
     vpoint.view_scale_ppm=1/mpp;
-    WeightedChartList infos=list->FindChartForTile(tile.zoom-manager->GetSettings()->GetOverZoom(),
+    WeightedChartList infos=set->FindChartForTile(tile.zoom-manager->GetSettings()->GetOverZoom(),
                 tile.zoom,
                 northwest,
                 southeast,
