@@ -109,6 +109,7 @@ public:
     ChartList::InfoList GetZoomCharts(int zoom){return charts->GetZoomCharts(zoom);}
     int                 GetNumValidCharts(){return numValidCharts;}
     wxString            GetSetToken();
+    long                GetSequence(){return settings->GetCurrentSequence();}
     
 
     

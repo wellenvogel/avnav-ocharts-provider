@@ -138,6 +138,19 @@ private:
         rt->responseHeaders["Access-Control-Allow-Origin"]="*";
         return rt;
     }
+    
+    HTTPResponse *handleSequenceRequest(){
+        wxString data=wxString::Format(
+                "{"
+                JSON_SV(status,OK) ","
+                JSON_IV(sequence,%ld)
+                "}",
+                this->set->GetSequence()
+                );
+        HTTPResponse *rt=new HTTPStringResponse("application/json",data);
+        rt->responseHeaders["Access-Control-Allow-Origin"]="*";
+        return rt;
+    }
 public:
     /**
      * create a request handler
@@ -164,6 +177,9 @@ public:
         if (url.StartsWith(avnavXml)){
             //get chart overview
             return handleOverviewRequest(request);
+        }
+        if (url.StartsWith("sequence")){
+            return handleSequenceRequest();
         }
         if (url.StartsWith("eula")){
             return handleEulaRequest(request);
