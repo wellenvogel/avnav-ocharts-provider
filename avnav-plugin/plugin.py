@@ -11,11 +11,11 @@ import subprocess
 import platform
 import shutil
 import threading
+import psutil
 
 
 class Plugin:
   EXENAME="AvnavOchartsProvider"
-  SERVERNAME="oeserverd"
   STARTSCRIPT="provider.sh"
   ENV_NAME="AVNAV_PROVIDER"
   CONFIG_FILE="avnav.conf"
@@ -100,6 +100,11 @@ class Plugin:
           'description':'percent of existing mem to be used',
           'default':''
 
+        },
+        {
+          'name': 'supervision',
+          'description': 'a , separated list of namePattern:memMb to be supervised',
+          'default': 'xvfb:53'
         }
       ]
 
@@ -138,31 +143,50 @@ class Plugin:
     self.chartList=[]
 
 
-  def checkProviderProcess(self,exe):
+  def findProcessByPattern(self,exe, checkuser=False,wildcard=False):
     """
-    return a list with pid,ppid,uid for running chartproviders
-    :param path:
-    :param onlyOwnChild:
+    return a list with pid,uid,name for running chartproviders
+    :@param exe the name of the executable
     :return:
     """
-    process = subprocess.Popen(['ps', '-o' 'pid,uid', '--no-headers', '-C', exe],stdout=subprocess.PIPE,stderr=None,stdin=None,close_fds=True)
-    list=[]
-    while True:
-      if process.stdout.closed:
-        break
-      line=process.stdout.readline()
-      if line is None or line == '':
-        break
-      line=line.rstrip().lstrip()
-      pvs=re.split("  *",line)
-      if len(pvs) < 2:
-        continue
+    processList=psutil.process_iter(['name','uids','ppid','pid'])
+    rtlist=[]
+    for process in processList:
       try:
-        list.append((int(pvs[0]),int(pvs[1])))
+        if process.info is None:
+          continue
+        info=process.info
+        uid=info.get('uids')
+        if uid is None:
+          continue
+        if checkuser and uid.effective != os.getuid():
+          continue
+        nameMatch=False
+        name=None
+        if exe is None:
+          nameMatch=True
+        elif type(exe) is list:
+          for n in exe:
+            if wildcard:
+              nameMatch=re.match(n,info['name'],re.IGNORECASE)
+              if nameMatch:
+                name=n
+            else:
+              if n == info['name']:
+                name=n
+                nameMatch=True
+        else:
+          name = exe
+          if wildcard:
+            nameMatch = re.match(exe, info['name'], re.IGNORECASE)
+          else:
+            nameMatch= info['name']  == exe
+        if not nameMatch:
+          continue
+        rtlist.append([info.get('pid'),uid.effective,name])
       except:
-        self.api.debug("strange line in ps output %s"%line)
-    process.wait()
-    return list
+        self.api.error("error fetching process list: %s",traceback.format_exc())
+    return rtlist
 
   def isPidRunning(self,pid):
     ev=self.getEnvValueFromPid(pid)
@@ -171,42 +195,19 @@ class Plugin:
     return ev == self.getEnvValue()
 
   def getEnvValueFromPid(self,pid):
-    envValue = None
     try:
-      BUFSIZE = 1024
-      evFile = "/proc/%d/environ" % pid
-      lastEnv = ''
-      with open(evFile, "rb") as f:
-        while envValue is None:
-          ev = f.read(BUFSIZE)
-          if (ev is None  or ev == '') and lastEnv == '':
-            break
-          if ev is None:
-            ev=lastEnv+chr(0)+chr(0)
-          else:
-            ev=lastEnv+ev
-          lastEnv=''
-          if ev.find(chr(0)) >= 0:
-            evlist = ev.split(chr(0))
-            evlist[0] += lastEnv
-            lastEnv = evlist[-1]
-            for entry in evlist[0:-1]:
-              nv = entry.split("=")
-              if len(nv) < 2:
-                continue
-              if nv[0] == self.ENV_NAME:
-                envValue = nv[1]
-                break
-          else:
-            lastEnv += ev
-        f.close()
+      process=psutil.Process(pid)
+      if process is None:
+        return None
+      environ=process.environ()
+      return environ.get(self.ENV_NAME)
     except Exception as e:
       self.api.debug("unable to read env for pid %d: %s" % (pid, e))
-    return envValue
+    return None
   
   def filterProcessList(self,list,checkForEnv=False):
     """
-    filter a list returned by checkProviderProcess for own user
+    filter a list returned by findProcessByPattern for own user
     :param list:
     :param checkForParent: also filter out processes with other parent
     :return:
@@ -313,6 +314,47 @@ class Plugin:
     'exeDir':'bin',
     's57DataDir':os.path.join("share","opencpn")
   }
+
+  def handleSupervision(self,checkOnly=False):
+    supervisionConfig=self.config.get('supervision')
+    if supervisionConfig is None or supervisionConfig == '':
+      return True
+    supervisions={}
+    for se in supervisionConfig.split(","):
+      values=se.split(":")
+      if len(values) < 2:
+        self.api.error("invalid supervision entry %s",se)
+        return False
+      try:
+        supervisions[values[0]]=int(values[1])
+      except:
+        self.api.error("unable to parse supervision entry %s",se)
+        return False
+    if checkOnly:
+      return True
+    candidates=self.filterProcessList(self.findProcessByPattern(supervisions.keys(),checkuser=True,wildcard=True),True)
+    if len(candidates) < 1:
+      self.api.debug("no matching processes running to supervise")
+      return True
+    for candidate in candidates:
+      try:
+        process=psutil.Process(candidate[0])
+        currentRss=process.memory_info().rss/(1024*1024)
+        maxRss=supervisions.get(candidate[2])
+        if maxRss is None:
+          raise Exception("invalid config, no max for %s",candidates[2])
+        self.api.debug("current rss %d for %s",currentRss,process.name())
+        if currentRss > maxRss:
+          self.api.error("process %d (%s) exceeds rss limit (current=%d, max=%d) and will be restarted",
+                         process.pid,process.name(),currentRss,maxRss)
+          process.kill()
+          process.wait(1)
+      except:
+        self.api.debug("error handling supervision for process %d: %s",candidate[0],traceback.format_exc())
+    return True
+
+
+
   def run(self):
     """
     the run method
@@ -389,7 +431,11 @@ class Plugin:
       self.api.error("exception while reading port from config %s",traceback.format_exc())
       self.api.setStatus("ERROR","invalid value for port %s"%self.config['port'])
       return
-    processes=self.checkProviderProcess(self.EXENAME)
+    if not self.handleSupervision(True):
+      self.api.error("invalid supervision config: %s", self.config.get('supervision'))
+      self.api.setStatus("ERROR", "invalid supervision config: %s", self.config.get('supervision'))
+      return
+    processes=self.findProcessByPattern(self.EXENAME)
     own=self.filterProcessList(processes,True)
     alreadyRunning=False
     providerPid=-1
@@ -433,10 +479,11 @@ class Plugin:
         if status is None or status != 'OK':
           raise Exception("invalid status from provider query")
         self.chartList=responseData['items']
+        self.handleSupervision()
       except:
         self.api.debug("exception reading from provider %s"%traceback.format_exc())
         self.connected=False
-        filteredList=self.filterProcessList(self.checkProviderProcess(self.EXENAME),True)
+        filteredList=self.filterProcessList(self.findProcessByPattern(self.EXENAME),True)
         if len(filteredList) < 1:
           if self.isPidRunning(providerPid):
             self.api.debug("final executable not found, but started process is running, wait")
@@ -444,11 +491,16 @@ class Plugin:
             self.api.setStatus("STARTED", "restarting provider")
             self.api.log("no running provider found, trying to start")
             #just see if we need to kill some old child...
-            backgroundList=self.filterProcessList(self.checkProviderProcess(self.SERVERNAME),True)
+            backgroundList=self.filterProcessList(self.findProcessByPattern(None),True)
             for bp in backgroundList:
               pid=bp[0]
               self.api.log("killing background process %d",pid)
               os.kill(pid,signal.SIGKILL)
+            try:
+              provider=psutil.Process(providerPid)
+              provider.wait(0)
+            except:
+              self.api.debug("error waiting for dead children: %s", traceback.format_exc())
             try:
               process=self.startProvider()
               providerPid=process.pid
