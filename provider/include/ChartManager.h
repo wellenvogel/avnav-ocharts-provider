@@ -157,9 +157,10 @@ public:
      * read extension an native scale from the cache file
      * is used as a replacement for ReadCharts on fast start
      * @param config
+     * @param memKb - set the memory limit
      * @return 
      */
-    bool                ReadChartInfoCache(wxFileConfig *config);
+    bool                ReadChartInfoCache(wxFileConfig *config, int memKb);
 private:
     std::mutex          statusLock;
     ChartInfoQueue      openCharts;

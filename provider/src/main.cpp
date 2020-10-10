@@ -649,7 +649,7 @@ private:
                 LOG_ERROR(wxT("no chart info cache found"));
             }
             else{
-                mustReadCharts=!chartManager->ReadChartInfoCache(readCache);
+                mustReadCharts=!chartManager->ReadChartInfoCache(readCache,memoryLimit);
                 if (mustReadCharts){
                     LOG_INFO(wxT("chart info cache not complete, must parse charts anyway"));
                 }

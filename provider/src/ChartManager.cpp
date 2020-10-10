@@ -689,8 +689,9 @@ bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
     LOG_INFO("written %d chart info cache entries",numWritten);
     return true;
 }
-bool ChartManager::ReadChartInfoCache(wxFileConfig* config){
+bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
     LOG_INFO(wxT("reading chart info cache"));
+    this->memKb=memKb;
     if (config == NULL){
         LOG_ERROR(wxT("chart cache file not open in read chart info cache"));
         return false;
