@@ -1,0 +1,43 @@
+Analyzing memory consumption on x-server
+
+1. Assumption: the plugin does not relase some server mem when charts are closed
+2. measures:
+  a) unchanged
+  b) render a 1x1 pixel bitmap before clsoing (to make m_pCloneBM really small)
+  c) change the plugin to delete m_pCloneBM when closing a chart
+
+3. setup:
+   - 3 chart sets with 872 charts
+   - always change some settings after changing the code to trigger cache prefill
+   - restart avnav to ge a new log, set mem to 2% (app. 30 charts on 16GB main mem)
+   - run checkMem.sh and write output to file
+   - periodically run (grep -v AvnavOcharts  ~/avnav/ocharts/provider.log; cat ~/mem.log ) | sort | ./mem.pl 
+     to check for app. 100 chart opens
+   - write result to file
+
+ 4. Results:
+ 4.1. initial Xvfb rss: app 44M
+ 4.2. at 100 open/~70 close:
+      a) app. 83MB
+      b) app. 66.8 MB
+      c) app. 66.7 MB
+ 4.3. usage per open chart (compare initial against 23 open):
+      a) 61.7 - 44.5 => 0.86MB/chart
+      b) 62.3 - 45.5 => 0.84MB/chart
+      c) 62.8 - 46.0 => 0.84MB/chart
+ 4.4. usage per chart when opening/closing (compare 70 closes agains last 0 closes):
+      a) 82.1 - 62.0 => 0.29MB/chart
+      b) 66.3 - 63.9 => 0.034MB/chart (app 34kb)
+      c) 66.8 - 64.4 => 0.034MB/chart (app 34kb)
+       => conclusion: still another mem leak but factor 8 better
+       => workaround (minimized bitmap before close) is sufficient
+       => should we consider the 0.9MB/open chart when computing limits? 
+  5. complete cache prefill run
+      b) ends with 118MB Xvfb, 2201 opens, 2173 close
+         mem/chart:  118MB-62.6MB/2173 => 0.025MB/chart
+
+       => conclusion: 
+       - default settings will give us ~11 charts to be open
+       - should give app. 10MB Xvfb increase, start at ~45MB -> 55MB
+       - with 0.03MB/close and 150MB for Xvfb we will restart after app. 
+         3000 open/close - should be ok for an average user      
