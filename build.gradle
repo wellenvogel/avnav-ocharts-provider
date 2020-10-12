@@ -60,7 +60,8 @@ def VARIANTS=[
                 ['libwxbase3.0-0v5','3.0.4+dfsg',GE],
                 ['libwxgtk3.0-0v5','3.0.4+dfsg',GE],
                 ['wx3.0-i18n']
-        ]]
+        ]],
+	
 ]
 
 def DOCKER=[
@@ -226,6 +227,7 @@ ospackage {
     requires('openssl')
     requires('libarchive13')
     requires('libglu1-mesa')
+    requires('python-psutil')
     user='root'
     into ('/usr/lib/avnav/plugins/ocharts') {
         from('s57data'){
