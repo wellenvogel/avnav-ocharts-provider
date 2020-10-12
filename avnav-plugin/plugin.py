@@ -104,7 +104,7 @@ class Plugin:
         {
           'name': 'supervision',
           'description': 'a , separated list of namePattern:memMb to be supervised',
-          'default': 'xvfb:53'
+          'default': 'xvfb:150'
         }
       ]
 
