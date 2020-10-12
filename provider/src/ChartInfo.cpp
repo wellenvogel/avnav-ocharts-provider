@@ -119,6 +119,24 @@ long ChartInfo::GetLastRender(){
 bool ChartInfo::Close(){
     if (chart == NULL) return true;
     LOG_INFO(wxT("closing chart %s"),filename);
+    //try to render a 1x1 region as it seems it does not free the bitmaps...
+    PlugIn_ViewPort vpoint;
+    vpoint.pix_width=1;
+    vpoint.pix_height=1;
+    vpoint.rotation=0.0;
+    vpoint.skew=0.0;
+    vpoint.m_projection_type=PI_PROJECTION_MERCATOR;
+    vpoint.clat=0;
+    vpoint.clon=0;
+    vpoint.lat_min=0;
+    vpoint.lat_max=0;
+    vpoint.lon_min=0;
+    vpoint.lon_max=0;
+    vpoint.bValid=true;
+    vpoint.b_quilt=false;
+    vpoint.view_scale_ppm=1;
+    wxRegion region(0,0,1,1);
+    chart->RenderRegionView(vpoint,region);
     delete chart;
     chart=NULL;
     return true;
