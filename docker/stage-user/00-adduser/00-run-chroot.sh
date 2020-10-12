@@ -1,3 +1,3 @@
 #! /bin/bash
-cat /etc/group | grep ':1000:' || groupadd -g 1000 andreas
-id -u andreas || useradd -m -u 1000 -g 1000 andreas
+cat /etc/group | grep ':100:' || groupadd -g 100 users
+id -u andreas || useradd -m -u 1026 -g 100 andreas
