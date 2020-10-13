@@ -284,7 +284,7 @@ class Plugin:
     if PATH is None:
       PATH=self.config['exeDir']
     else:
-      PATH=PATH+os.path.pathsep+self.config['exeDir']
+      PATH=self.config['exeDir']+os.path.pathsep+PATH
     env.update({self.ENV_NAME: envValue,'PATH':PATH})
     self.api.log("starting provider with command %s"%" ".join(cmdline))
     process=subprocess.Popen(cmdline,env=env,close_fds=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
