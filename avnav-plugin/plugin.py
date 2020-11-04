@@ -296,12 +296,20 @@ class Plugin:
 
   def listCharts(self,hostip):
     self.api.debug("listCharts %s"%hostip)
+    iconUrl=None
+    try:
+      iconUrl=self.api.getBaseUrl()+"/gui/icon.png"
+    except:
+      #seems to be an AvNav that still does not have getBaseUrl...
+      pass
     if not self.connected:
       self.api.debug("not yet connected")
       return []
     try:
       items=self.chartList+[]
       for item in items:
+        if iconUrl is not None:
+          item['icon']=iconUrl
         for k in item.keys():
           if type(item[k]) == str or type(item[k]) == unicode:
             item[k]=item[k].replace("localhost",hostip).replace("127.0.0.1",hostip)
