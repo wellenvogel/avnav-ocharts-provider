@@ -194,7 +194,7 @@ public:
             }
             url = res.url;
         } else {
-            return new HTTPResponse();
+            //return new HTTPResponse();
         }
         TileInfo tile(url, name);
         if (!tile.valid) {

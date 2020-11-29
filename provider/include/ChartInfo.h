@@ -33,6 +33,7 @@
 #include <wx/dynarray.h>
 #include <wx/dc.h>
 #include "Tiles.h"
+#include <map>
 
 /**
  * definition of the max. zoom level we compute or scales for
@@ -117,9 +118,12 @@ public:
     char        featureName[8];
     double      lat;
     double      lon;
+    double      distance;
     wxString    name;
+    std::map<wxString,wxString> param;
     bool        IsPoint();
     wxString    ToJson();
+    double      ComputeDistance(double lon,double lat);
 };
 
 typedef std::vector<ObjectDescription> ObjectList;

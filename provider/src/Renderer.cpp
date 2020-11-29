@@ -163,6 +163,19 @@ FeatureInfoMessage::FeatureInfoMessage(
     this->tolerance=tolerance;   
 }
 
+
+bool objectDescriptionSort(ObjectDescription first, ObjectDescription second){
+    //1.we prefer points
+    //2.we sort by distance
+    //3.we prefer lights
+    if (first.IsPoint() && ! second.IsPoint())return true;
+    if (second.IsPoint() && ! first.IsPoint()) return false;    
+    if (first.distance < second.distance) return true;
+    if (first.distance > second.distance) return false;
+    if (strcmp("LIGHTS",first.featureName) == 0 && strcmp("LIGHTS",second.featureName) != 0) return true;
+    return false;
+}
+
 void FeatureInfoMessage::Process(bool discard){
     if (discard){
         SetDone();
@@ -188,21 +201,39 @@ void FeatureInfoMessage::Process(bool discard){
     WeightedChartList infos=GetChartList();
     wxRegion region(0,0,TILE_SIZE,TILE_SIZE);
     LOG_DEBUG(_T("merge match for %d/%d/%d with %d entries"),tile.zoom,tile.x,tile.y,(int)infos.size());
-    wxString rt="[";
+    ObjectList completeList;
+
     for (int i=infos.size()-1;i>=0;i--){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=chart->GetNativeScale();
         manager->OpenChart(chart); //ensure the chart to be open
         ObjectList list=chart->FeatureInfo(vpoint,lat,lon,tolerance);
-        ObjectList::iterator it;
-        bool isFirst=true;
-        for (it=list.begin();it != list.end();it++){
-            if (! isFirst) rt.Append(",");
-            isFirst=false;
-            rt.Append(it->ToJson());
-        }
+        completeList.insert(completeList.end(),list.begin(),list.end());
     }
-    rt.Append("]");
+    std::sort(completeList.begin(),completeList.end(),objectDescriptionSort);
+    ObjectList::iterator it;
+    wxString rt = "{\"objects\":[";
+    wxString html="";
+    bool isFirst = true;
+    ObjectDescription *last=NULL;
+    for (it = completeList.begin(); it != completeList.end(); it++) {
+        if (!isFirst) rt.Append(",");
+        isFirst = false;
+        if (last != NULL){
+            if (strncmp(last->featureName,it->featureName,sizeof(last->featureName)) == 0 &&
+            last->lat == it->lat &&
+            last->lon == it->lon &&
+            last->name == it->name){
+                last=&(*it);
+                continue;
+            }
+        }
+        last=&(*it);
+        rt.Append(it->ToJson());
+        html.Append(it->html);
+    }
+    rt.Append("]\n,\"html\":\"");
+    rt.Append(StringHelper::safeJsonString(html)).Append("\"}");
     this->result=rt;
     renderOk=true;
     SetDone();

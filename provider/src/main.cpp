@@ -70,7 +70,7 @@
 #include "SettingsRequestHandler.h"
 #include "UploadRequestHandler.h"
 #include "ColorTable.h"
-
+#include "S57AttributeDecoder.h"
 
 extern "C" void * gluNewTess();
 #ifndef __WXMSW__
@@ -462,6 +462,7 @@ private:
         }
         ColorTable currentTable=colorReader.GetTable("DAY_BRIGHT",true);
         setColorTable(&currentTable);
+        S57AttributeDecoder::CreateInstance(s57Dir);
         int port = atoi(args.Item(3));
         //first try to create all chart set infos
         wxArrayString chartlist;

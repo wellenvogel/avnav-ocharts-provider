@@ -656,6 +656,7 @@ set(
   include/MainQueue.h
   include/Types.h
   include/ColorTable.h
+  include/S57AttributeDecoder.h
   include/requestHandler/RequestHandler.h
   include/requestHandler/ChartRequestHandler.h
   include/requestHandler/TokenRequestHandler.h
@@ -701,6 +702,7 @@ set(
   src/SettingsManager.cpp
   src/MainQueue.cpp
   src/ColorTable.cpp
+  src/S57AttributeDecoder.cpp
   src/HTTPd/Worker.cpp
   src/HTTPd/HTTPServer.cpp
 
