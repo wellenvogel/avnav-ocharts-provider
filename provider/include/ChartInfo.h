@@ -109,6 +109,21 @@ public:
     }
 };
 
+class ObjectDescription{
+public:
+    ObjectDescription(PI_S57Obj *obj);
+    wxString    html;
+    int         primitiveType;
+    char        featureName[8];
+    double      lat;
+    double      lon;
+    wxString    name;
+    bool        IsPoint();
+    wxString    ToJson();
+};
+
+typedef std::vector<ObjectDescription> ObjectList;
+
 class ChartInfo{
 private:
     PlugInChartBase *chart;
@@ -143,6 +158,7 @@ public:
     int         HasTile(LatLon &northwest,LatLon &southeast);
     bool        UpdateBoundings(/*inout*/BoundingBox *box);
     bool        Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region);
+    ObjectList  FeatureInfo(PlugIn_ViewPort& VPoint, float lat, float lon, float tolerance);
     void        GetTileBounds(/*out*/int &xmin,int &xmax,int &ymin,int &ymax);
     TileBox     GetTileBounds();
     bool        IsOpen();

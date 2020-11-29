@@ -185,38 +185,63 @@ public:
             return handleEulaRequest(request);
         }
         DecryptResult res;
-        if (url.StartsWith("encrypted/")){
-            wxString encrypted=url.AfterFirst('/');
-            res=tokenHandler->DecryptUrl(encrypted);
-            if (res.url == wxEmptyString){
-                LOG_DEBUG(_T("unable to decrypt url %s"),encrypted);
+        if (url.StartsWith("encrypted/")) {
+            wxString encrypted = url.AfterFirst('/').BeforeFirst('?');
+            res = tokenHandler->DecryptUrl(encrypted);
+            if (res.url == wxEmptyString) {
+                LOG_DEBUG(_T("unable to decrypt url %s"), encrypted);
                 return new HTTPResponse();
             }
-            url=res.url;
+            url = res.url;
+        } else {
+            return new HTTPResponse();
         }
-        else{
+        TileInfo tile(url, name);
+        if (!tile.valid) {
             LOG_DEBUG(_T("invalid url %s"), url);
             return new HTTPResponse();
         }
-        TileInfo tile(url,name);
-        if (! tile.valid) {
-            LOG_DEBUG(_T("invalid url %s"), url);
-            return new HTTPResponse();
+        if (res.sessionId != wxEmptyString) {
+            set->LastRequest(res.sessionId, tile);
         }
-        if (res.sessionId != wxEmptyString){
-            set->LastRequest(res.sessionId,tile);
+        NameValueMap::iterator it;
+        NameValueMap *query = &(request->query);
+        it = query->find("featureInfo");
+        if (it == query->end()) {
+            CacheEntry *ce = NULL;
+            Renderer::RenderResult rt = Renderer::Instance()->renderTile(set, tile, ce);
+            if (rt != Renderer::RENDER_OK) return new HTTPResponse();
+            //the Cache entry is now owned by the response
+            //and will be unrefed there
+            HTTPResponse *response = new HTTPBufferResponse("image/png", ce);
+            long timeSave = Logger::MicroSeconds100();
+            LOG_DEBUG(_T("http render: all=%ld"),
+                    (timeSave - start)*100
+                    );
+            return response;
         }
-        CacheEntry *ce=NULL;
-        Renderer::RenderResult rt = Renderer::Instance()->renderTile(set,tile, ce);
-        if (rt != Renderer::RENDER_OK) return new HTTPResponse();
-        //the Cache entry is now owned by the response
-        //and will be unrefed there
-        HTTPResponse *response = new HTTPBufferResponse("image/png", ce);
-        long timeSave = Logger::MicroSeconds100();
-        LOG_DEBUG(_T("http render: all=%ld"),
-                (timeSave - start)*100
-                );
-        return response;
+        double lat, lon, tolerance;
+        it = query->find("lat");
+        if (it == query->end()) return new HTTPJsonErrorResponse("missing lat");
+        lat = atof(it->second);
+        it = query->find("lon");
+        if (it == query->end()) return new HTTPJsonErrorResponse("missing lon");
+        lon = atof(it->second);
+        it = query->find("tolerance");
+        if (it == query->end()) return new HTTPJsonErrorResponse("missing tolerance");
+        tolerance = atof(it->second);
+        wxString result=Renderer::Instance()->FeatureRequest(set,tile,lat,lon,tolerance);
+        HTTPResponse *rt= new HTTPStringResponse("application/json",
+                wxString::Format(
+                "{"
+                JSON_SV(status,OK) ","
+                JSON_IV(data,%s)
+                "}",
+                result
+                ));
+       
+        rt->responseHeaders["Access-Control-Allow-Origin"]="*";
+        return rt;
     }
     virtual wxString GetUrlPattern() {
         return urlPrefix+wxT("*");

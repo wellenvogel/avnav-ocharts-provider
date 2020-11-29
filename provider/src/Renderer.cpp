@@ -37,7 +37,7 @@
 
 
 
-RenderMessage::RenderMessage(TileInfo& tile, ChartSet *set, 
+RenderMessageBase::RenderMessageBase(TileInfo& tile, ChartSet *set, 
         Renderer *renderer,long settingsSequence): MainMessage() {
     this->tile = tile;
     renderOk = false;
@@ -47,28 +47,36 @@ RenderMessage::RenderMessage(TileInfo& tile, ChartSet *set,
     afterRenderTime=creationTime;
     afterImageTime=creationTime;
     afterPngTime=creationTime;
-    cacheResult=NULL;
-    renderResult=NULL;
     this->set=set;
     this->renderer=renderer;
     this->settingsSequence=settingsSequence;
 }
+RenderMessageBase::~RenderMessageBase(){
+    
+}
+
+RenderMessage::RenderMessage(TileInfo& tile, ChartSet *set, 
+        Renderer *renderer,long settingsSequence):
+        RenderMessageBase(tile,set,renderer,settingsSequence){
+    cacheResult=NULL;
+    renderResult=NULL;
+}
+
 RenderMessage::~RenderMessage(){
     if (cacheResult != NULL) cacheResult->Unref();
     if (renderResult != NULL) free(renderResult);
 }
 
-
-void RenderMessage::SetDequeueTime(){
+void RenderMessageBase::SetDequeueTime(){
     dequeueTime=Logger::MicroSeconds100();
 }
 
-void RenderMessage::SetAfterImageTime(){
+void RenderMessageBase::SetAfterImageTime(){
     afterImageTime=Logger::MicroSeconds100();
 }
 
 
-wxString RenderMessage::GetTimings(){
+wxString RenderMessageBase::GetTimings(){
     return wxString::Format(_T("find=%ld,dequeue=%ld,render=%ld,image=%ld,png=%ld,all=%ld"),
             (findTime-creationTime)*100,
             (dequeueTime-findTime)*100,
@@ -124,12 +132,12 @@ CacheEntry * RenderMessage::GetCacheResult(){
     return NULL;
 }
 
-void RenderMessage::SetCharts(WeightedChartList charts){
+void RenderMessageBase::SetCharts(WeightedChartList charts){
     this->charts=charts;
     findTime=Logger::MicroSeconds100();
 }
 
-void RenderMessage::SetViewPort(PlugIn_ViewPort vp){
+void RenderMessageBase::SetViewPort(PlugIn_ViewPort vp){
     this->viewport=vp;
 }
 
@@ -141,6 +149,68 @@ void RenderMessage::Process(bool discard){
     renderer->DoRenderTile(this);
 }
 
+FeatureInfoMessage::FeatureInfoMessage(
+        TileInfo& tile, 
+        ChartSet* set, 
+        Renderer* renderer, 
+        long settingsSequence,
+        float  lat,
+        float  lon,
+        float  tolerance):
+        RenderMessageBase(tile,set,renderer,settingsSequence){
+    this->lat=lat;
+    this->lon=lon;
+    this->tolerance=tolerance;   
+}
+
+void FeatureInfoMessage::Process(bool discard){
+    if (discard){
+        SetDone();
+        return;
+    }
+    long start=Logger::MicroSeconds100();
+    TileInfo tile=GetTile();
+    if (GetSettingsSequence() != manager->GetSettings()->GetCurrentSequence()){
+        LOG_DEBUG(wxT("HandleFeatureRequest: %s settings sequence changed, cancel"),tile.ToString());
+        SetDone();
+        return;
+    }
+    //we need to check the cache again as maybe some requests already had
+    //been in the queue
+    ChartSet *set=GetSet();
+    if (!set->IsActive()){
+        LOG_DEBUG(wxT("HandleFeatureRequest: chart set no longer active"),tile.ToString());
+        SetDone();
+        return;
+    }
+    SetDequeueTime();
+    PlugIn_ViewPort vpoint=GetViewPort();
+    WeightedChartList infos=GetChartList();
+    wxRegion region(0,0,TILE_SIZE,TILE_SIZE);
+    LOG_DEBUG(_T("merge match for %d/%d/%d with %d entries"),tile.zoom,tile.x,tile.y,(int)infos.size());
+    wxString rt="[";
+    for (int i=infos.size()-1;i>=0;i--){
+        ChartInfo *chart=infos[i].info;
+        vpoint.chart_scale=chart->GetNativeScale();
+        manager->OpenChart(chart); //ensure the chart to be open
+        ObjectList list=chart->FeatureInfo(vpoint,lat,lon,tolerance);
+        ObjectList::iterator it;
+        bool isFirst=true;
+        for (it=list.begin();it != list.end();it++){
+            if (! isFirst) rt.Append(",");
+            isFirst=false;
+            rt.Append(it->ToJson());
+        }
+    }
+    rt.Append("]");
+    this->result=rt;
+    renderOk=true;
+    SetDone();
+}
+
+wxString FeatureInfoMessage::GetResult(){
+    return result;
+}
 
 //must be called in main thread
 Renderer::Renderer(ChartManager *manager,MainQueue *queue){
@@ -233,7 +303,11 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
     return false;
 }
 
-RenderMessage *Renderer::PrepareRenderMessage(ChartSet *set, TileInfo &tile){
+ bool Renderer::PrepareRenderMessage(
+        ChartSet *set, 
+        TileInfo &tile,
+        RenderMessageBase *msg
+    ){
     PlugIn_ViewPort vpoint;
     vpoint.pix_width=TILE_SIZE;
     vpoint.pix_height=TILE_SIZE;
@@ -254,9 +328,10 @@ RenderMessage *Renderer::PrepareRenderMessage(ChartSet *set, TileInfo &tile){
     vpoint.bValid=true;
     vpoint.b_quilt=false;
     double mpp=set->GetMppForZoom(tile.zoom);
-    if (mpp <= 0) return NULL;
-    RenderMessage *msg=new RenderMessage(tile,set,
-            this,manager->GetSettings()->GetCurrentSequence());
+    if (mpp <= 0) {
+        msg->Unref();
+        return false;
+    }
     vpoint.view_scale_ppm=1/mpp;
     WeightedChartList infos=set->FindChartForTile(tile.zoom-manager->GetSettings()->GetOverZoom(),
                 tile.zoom,
@@ -266,15 +341,18 @@ RenderMessage *Renderer::PrepareRenderMessage(ChartSet *set, TileInfo &tile){
     long timeFind=Logger::MicroSeconds100();
     if (infos.size() < 1) {
         msg->Unref();
-        return NULL; //no matching chart found
+        return false; //no matching chart found
     }
     std::sort(infos.begin(),infos.end(),scaleSort);
     LOG_DEBUG(wxT("render with %ld charts"),infos.size());
     msg->SetCharts(infos);
     msg->SetViewPort(vpoint);
-    return msg;
+    msg->SetManager(manager);
+    return true;
 } 
 
+ 
+ 
 Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEntry *&out,long timeout,bool forCache){
     set->SetTileCacheKey(tile);
     if (! forCache && set->cache != NULL){
@@ -286,8 +364,9 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
         }
     }
     LOG_DEBUG(_T("render tile %s - %s must render"),tile.ToString(),(forCache?"prefill":"request"));
-    RenderMessage *msg=PrepareRenderMessage(set,tile);
-    if (msg == NULL) return RENDER_FAIL;
+    RenderMessage *msg=new RenderMessage(tile,set,
+            this,manager->GetSettings()->GetCurrentSequence());
+    if (! PrepareRenderMessage(set,tile,msg))return RENDER_FAIL;
     if (!queue->Enqueue(msg,timeout,forCache)){
         msg->Unref(); //our own
         return RENDER_QUEUE;
@@ -319,6 +398,32 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
     
     
 }
+
+wxString Renderer::FeatureRequest(
+        ChartSet* set, 
+        TileInfo& tile, 
+        double lat, double lon, double tolerance) {
+    LOG_DEBUG(wxT("Renderer::FeatureRequest: set=%s, tile=%s"),
+            set->GetKey(),tile.ToString());
+    FeatureInfoMessage *msg=new FeatureInfoMessage(tile,set,
+            this,manager->GetSettings()->GetCurrentSequence(),lat,lon,tolerance);
+    if (! PrepareRenderMessage(set,tile,msg))return wxEmptyString;
+    if (!queue->Enqueue(msg,1000,false)){
+        msg->Unref(); //our own
+        return wxEmptyString;
+    }
+    bool rt=msg->WaitForResult(800000);
+    if (! rt || ! msg->IsOk()) {
+        LOG_ERROR(_T("Renderer::FeatureRequest failed for %s"),tile.ToString());
+        msg->Unref();
+        return wxEmptyString;
+    }
+    wxString result=msg->GetResult();
+    LOG_DEBUG("Renderer::FeatureRequest for %s: %s",tile.ToString(),msg->GetTimings());
+    msg->Unref();
+    return result;
+}
+
 Renderer * Renderer::Instance(){
     return _instance;
 }

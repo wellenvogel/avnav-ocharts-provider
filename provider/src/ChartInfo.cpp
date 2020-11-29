@@ -32,6 +32,7 @@
 #include <wx/time.h>
 #include "Logger.h"
 #include "StringHelper.h"
+#include "pi_s52s57.h"
 
 
 ZoomLevelScales::ZoomLevelScales(double scaleLevel) {
@@ -232,8 +233,90 @@ bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &
     return true;
 }
 
+ObjectList ChartInfo::FeatureInfo(PlugIn_ViewPort& VPoint,
+            float lat, float lon, float tolerance){
+    ObjectList rt;
+    if (chart == NULL){
+        if (!Reopen(true,false)) return rt;
+    }
+    PlugInChartBaseExtended *pluginChart=wxDynamicCast(chart, PlugInChartBaseExtended);
+    if (pluginChart == NULL){
+        LOG_DEBUG(wxT("FeatureInfo: chart %s is no extended chart"),GetFileName());
+        return rt;
+    }
+    ListOfPI_S57Obj *objList= pluginChart->GetObjRuleListAtLatLon(lat,lon,tolerance,&VPoint);
+    ListOfPI_S57Obj::iterator it;
+    for (it=objList->begin();it!=objList->end();it++){
+        PI_S57Obj *obj=*it;
+        ObjectDescription desc(obj);
+        ListOfPI_S57Obj oneElement;
+        oneElement.Append(obj);
+        oneElement.DeleteContents(false);
+        desc.html=pluginChart->CreateObjDescriptions(&oneElement);
+        rt.push_back(desc);
+    }
+    delete objList;
+    LOG_DEBUG(wxT("FeatureInfo(leave): chart %s"),GetFileName());
+    return rt;
+}
+
+
 void ChartInfo::FromCache(int nativeScale, ExtentPI extent){
     this->nativeScale=nativeScale;
     this->extent=extent;
     this->isValid=true;
+}
+
+
+ObjectDescription::ObjectDescription(PI_S57Obj* obj) {
+    memcpy(featureName,obj->FeatureName,sizeof(featureName));
+    primitiveType=obj->Primitive_type;
+    html=wxEmptyString;
+    //TODO: check if this is reliable
+    lat=obj->m_lat;
+    lon=obj->m_lon;
+    char *curAttr=obj->att_array;
+    for (int i=0;i< obj->n_attr;i++){
+        wxString attrName=wxString(curAttr,wxConvUTF8,6);
+        curAttr+=6;
+        if (attrName == wxString("OBJNAM")){
+            wxString name=(const char *)(obj->attVal->Item(i)->value);
+            this->name=name;
+        }
+    }
+}
+bool ObjectDescription::IsPoint(){
+    return this->primitiveType == GEO_POINT;
+}
+
+wxString ObjectDescription::ToJson(){
+    wxString rt=wxString::Format(
+            "{"
+            JSON_SV(s57featureName,%s)
+            ","
+            JSON_SV(name,%s)
+            ","
+            JSON_IV(lat,%f)
+            ","
+            JSON_IV(lon,%f)
+            ","
+            JSON_SV(html,%s) "\n"
+            ,
+            StringHelper::safeJsonString(featureName),
+            name,
+            lat,
+            lon,
+            StringHelper::safeJsonString(html)
+            );
+    if (IsPoint()){
+        rt.Append(wxString::Format(
+                ","
+                "\"nextTarget\":[%f,%f]"
+                ,
+                lon,
+                lat
+                ));
+    }
+    rt.Append("}");
+    return rt;
 }

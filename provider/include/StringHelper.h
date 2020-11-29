@@ -45,6 +45,8 @@ public:
     static wxString safeJsonString(wxString in){
         wxString rt=in.Clone();
         rt.Replace("\"","\\\"",true);
+        rt.Replace("\n"," ",true);
+        rt.Replace("\r"," ",true);
         return rt;
         }
     static wxString         SanitizeString(wxString input){        

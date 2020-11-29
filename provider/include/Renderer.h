@@ -43,11 +43,9 @@
 
 class CacheEntry;
 class Renderer;
-class RenderMessage : public MainMessage{
-private:
+class RenderMessageBase : public MainMessage{
+protected:
     bool            renderOk;
-    unsigned char * renderResult;
-    CacheEntry    * cacheResult;
     ChartSet      * set;
     TileInfo        tile;
     WeightedChartList charts;
@@ -60,14 +58,31 @@ private:
     long            afterPngTime;
     long            settingsSequence;
     Renderer        *renderer;
-    ~RenderMessage();
+    ChartManager    *manager;
+    virtual ~RenderMessageBase();
+public:
+    RenderMessageBase(TileInfo &tile,ChartSet *set,Renderer *renderer,
+            long settingsSequence);
+    TileInfo            GetTile(){return tile;}
+    wxString            GetTimings();
+    void                SetDequeueTime();
+    void                SetAfterImageTime();
+    void                SetCharts(WeightedChartList charts);
+    void                SetViewPort(PlugIn_ViewPort vp);
+    PlugIn_ViewPort &   GetViewPort(){return viewport;}
+    WeightedChartList & GetChartList(){return charts;}
+    ChartSet *          GetSet(){ return set;}
+    bool                IsOk(){return renderOk;}
+    void                SetManager(ChartManager *manager){this->manager=manager;}
+    long                GetSettingsSequence(){return settingsSequence;}
+};
+
+class RenderMessage : public RenderMessageBase{
 public:
     RenderMessage(TileInfo &tile,ChartSet *set,Renderer *renderer,
             long settingsSequence);
-    virtual void        Process(bool discard=false);
     void                StoreResult(CacheEntry *e,bool ok);
-    void                StoreResult(wxImage &result,bool ok);
-    TileInfo            GetTile(){return tile;}
+    void                StoreResult(wxImage &result,bool ok); 
     /**
      * create the final result (if not yet available)
      * the final result is the png encoded data in a CacheEntry
@@ -82,16 +97,29 @@ public:
      * @return 
      */
     CacheEntry          *GetCacheResult();
-    wxString            GetTimings();
-    void                SetDequeueTime();
-    void                SetAfterImageTime();
-    void                SetCharts(WeightedChartList charts);
-    void                SetViewPort(PlugIn_ViewPort vp);
-    PlugIn_ViewPort &   GetViewPort(){return viewport;}
-    WeightedChartList & GetChartList(){return charts;}
-    ChartSet *          GetSet(){ return set;}
-    bool                IsOk(){return renderOk;}
-    long                GetSettingsSequence(){return settingsSequence;}
+    virtual void        Process(bool discard=false);
+    
+    virtual ~RenderMessage();
+    
+protected:
+    CacheEntry    * cacheResult;
+    unsigned char * renderResult;
+   
+};
+class FeatureInfoMessage : public RenderMessageBase{
+public:
+    FeatureInfoMessage(TileInfo &tile,ChartSet *set,Renderer *renderer,
+            long settingsSequence,
+            float lat,
+            float lon,
+            float tolerance);
+    virtual     void Process(bool discard=false);
+    wxString    GetResult();
+private:
+    float  lat;
+    float  lon;
+    float  tolerance;
+    wxString result;
 };
 
 class Renderer{
@@ -106,7 +134,15 @@ private:
     ChartManager    *manager;
     bool            stop;
     Renderer(ChartManager *manager,MainQueue *queue);
-    RenderMessage   *PrepareRenderMessage(ChartSet *set, TileInfo &tile);
+    /**
+     * prepare a message for rendering
+     * @param set
+     * @param tile
+     * @param msg
+     * @return true: message ok, false: message deleted (via unref)
+     */
+    bool            PrepareRenderMessage(ChartSet *set, TileInfo &tile
+                        ,RenderMessageBase* msg);
     wxBitmap        *initialBitmap;
     wxColor         backColor;
     
@@ -124,6 +160,7 @@ public:
      * @param manager
      */
     void                DoRenderTile(RenderMessage *msg);
+    wxString            FeatureRequest(ChartSet *set,TileInfo &tile,double lat, double lon, double tolerance);
 };
 
 #endif

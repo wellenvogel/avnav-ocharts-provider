@@ -6,6 +6,11 @@
 <script type="text/javascript">
     var timer=-1;
     var testRunning=false;
+    var match=window.location.search.match(/set=([^&]*)/);
+    var base="/charts/CS_src_ocharts-provider_charts";
+    if (match){
+	base="/charts/"+match[1];
+    }
     function test(){
         window.avnav.ochartsProvider.heartBeat().then(function(status){
             console.log("status: "+status);
@@ -13,7 +18,7 @@
             let encryptedValue=window.avnav.ochartsProvider.encryptUrl(url);
             document.getElementById("encrypted").textContent=encryptedValue;           
 			var testImg=url;
-			var src="/charts/CS_src_ocharts-provider_charts/"+window.avnav.ochartsProvider.encryptUrl(testImg);
+			var src=base+"/"+window.avnav.ochartsProvider.encryptUrl(testImg);
 			document.getElementById("testimg").setAttribute("src",src);
             console.log("enc="+encryptedValue);
         }).catch(function(error){
@@ -62,7 +67,7 @@
     function newImage(z,x,y){
         var url=z+"/"+x+"/"+y+".png";
         document.getElementById("val").value=url;
-        var src="/charts/CS_src_ocharts-provider_charts/"+window.avnav.ochartsProvider.encryptUrl(url);
+        var src=base+"/"+window.avnav.ochartsProvider.encryptUrl(url);
         document.getElementById("testimg").setAttribute("src",src);
     }
     function startCont(){

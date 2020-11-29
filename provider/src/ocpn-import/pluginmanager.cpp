@@ -1870,3 +1870,11 @@ wxString GetLocaleCanonicalName(){
 wxString PI_GetPLIBColorScheme(){
     return _T(""); 
 }
+
+#include <wx/listimpl.cpp>
+WX_DEFINE_LIST(ListOfPI_S57Obj);
+
+//this is somehow dirty
+//the compiler just needs this - but finally the destructor will always being called from the plugin
+//so we can leave it empty here
+PI_S57Obj::~PI_S57Obj(){}

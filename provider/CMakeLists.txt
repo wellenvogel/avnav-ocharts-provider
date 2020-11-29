@@ -628,6 +628,7 @@ set(
   include/ocpn-import/cutil.h
   include/ocpn-import/dychart.h
   include/ocpn-import/ocpn_plugin.h
+  include/ocpn-import/pi_s52s57.h
   include/ChartInfo.h
   include/Tiles.h
   include/ChartList.h
