@@ -34,6 +34,7 @@
 #include "Logger.h"
 #include "CacheHandler.h"
 #include "ChartManager.h"
+#include "S57AttributeDecoder.h"
 
 
 
@@ -404,22 +405,85 @@ bool objectDescriptionSort(ObjectDescription first, ObjectDescription second){
     return false;
 }
 
+typedef std::vector<wxString> StringList;
 class AttributeEntry{
 public:
-    std::vector<wxString> attributes;
+    StringList attributes;
+    StringList features;
     wxString target;
-    AttributeEntry(wxString target, std::vector<wxString> attributes){
+    AttributeEntry(wxString target, StringList features,StringList attributes){
         this->target=target;
         this->attributes=attributes;
+        this->features=features;
+    }
+    bool MatchesFeature(wxString featureName){
+        return features.size() == 0 || (std::find(features.begin(),features.end(),featureName) != features.end());
+    }
+    bool MatchesAttributeName(wxString attributeName){
+        return (std::find(attributes.begin(),attributes.end(),attributeName) != attributes.end());
+    }
+    bool MatchesFeatureAndAttribute(wxString featureName,wxString attributeName){
+        return MatchesFeature(featureName) && MatchesAttributeName(attributeName);
     }
 };
 
 typedef std::vector<AttributeEntry*> AttributeMappings;
 static AttributeMappings mappings={
-  new AttributeEntry("light",{"LITCHR","SIGGRP","SIGPER","SECTR1","SECTR2"}),  
-  new AttributeEntry("color",{"COLOUR"}),
-  new AttributeEntry("name",{"OBJNAME"})    
+  new AttributeEntry("light",{"LIGHTS","LIGHTFLOAT"},{"OBJNAME","LITCHR","LITVIS","SIGGRP","SIGPER","SIGSEQ","SECTR1","SECTR2"}),  
+  new AttributeEntry("buoy",{"BOYSPP","BOYCAR","BOYINB","BOYISD","BOYLAT","BOYSAW"},
+    {"OBJNAM","BOYSHP","COLOUR"}),
+  new AttributeEntry("top",{"TOPMAR"},
+    {"OBJNAM","COLOUR","COLPAT","HEIGHT"})
 };
+
+wxString formatCoordinate(double coordinate,bool isLat){
+    //taken from avnav js
+    if (coordinate > 180) coordinate=coordinate-360;
+    if (coordinate < -180) coordinate=coordinate+360;
+    bool isNeg=false;
+    if (coordinate < 0){
+        isNeg=true;
+        coordinate=-coordinate;
+    }
+    double abs=floor(coordinate);
+    double minutes=60*(coordinate-abs);
+    if (!isLat){
+        return wxString::Format(wxT("%03.0f\u00B0%2.2f%c"),abs,minutes,(isNeg?'W':'E'));
+    }
+    else{
+        return wxString::Format(wxT("%02.0f\u00B0%2.2f%c"),abs,minutes,(isNeg?'S':'N'));
+    }
+}
+wxString objectToHtml(ObjectDescription *obj){
+    S57AttributeDecoder *decoder=S57AttributeDecoder::GetInstance();
+    wxString rt=wxT("<div class=\"S57Object\">");
+    rt.Append(wxString::Format(
+    wxT("<div class=\"name\">%s</div>"),
+    StringHelper::safeHtmlString(decoder->GetFeatureText(obj->featureName,true))
+    ));
+    if (obj->IsPoint()){
+        rt.Append("<div class=\"coordinate\">")
+            .Append(formatCoordinate(obj->lat,true)).Append(" ")
+            .Append(formatCoordinate(obj->lon,false))
+            .Append("</div>");
+    }
+    NameValueMap::iterator it;
+    for (it=obj->param.begin();it!=obj->param.end();it++){
+        rt.Append(wxString::Format(
+            wxT("<div class=\"param\">"
+                "<span class=\"label\">%s</span>"
+                "<span class=\"labelText\">%s</span>"
+                "<span class=\"value\">%s</span>"
+                "</div>"
+            ),
+            it->first,
+            StringHelper::safeHtmlString(decoder->GetAttributeText(it->first)),
+            StringHelper::safeHtmlString(it->second)    
+            ));
+    }
+    rt.Append("</div>");
+    return rt;
+}
 
 wxString Renderer::FeatureRequest(
         ChartSet* set, 
@@ -449,6 +513,7 @@ wxString Renderer::FeatureRequest(
     AttributeMappings::iterator mit;
     NameValueMap::iterator nvit;
     std::vector<wxString>::iterator sit;
+    wxString html;
     for (it = completeList->begin(); it != completeList->end(); it++) {
         if (last != NULL){
             if (last->featureName == it->featureName &&
@@ -461,16 +526,19 @@ wxString Renderer::FeatureRequest(
         }
         last=&(*it);       
         if (first == NULL) first=&(*it);
+        html.Append(objectToHtml(&(*it)));
         if (!it->IsPoint()) continue; //leave out others for now
         if (it->lat != first->lat || it->lon != first->lon){
             //only consider objects with the same coordinates like the first
             continue;
         }
         for (mit=mappings.begin();mit!=mappings.end();mit++){
+            if (!(*mit)->MatchesFeature(it->featureName)) continue;
+            properties[(*mit)->target]=S57AttributeDecoder::GetInstance()->GetFeatureText(it->featureName,true);
             for (sit=(*mit)->attributes.begin();sit!=(*mit)->attributes.end();sit++){
                 nvit=it->param.find(*sit);
                 if (nvit != it->param.end()){
-                    properties[(*mit)->target].Append(nvit->second).Append(" ");
+                    properties[(*mit)->target].Append(" ").Append(nvit->second);
                 }
             }
         }
@@ -483,16 +551,28 @@ wxString Renderer::FeatureRequest(
             first->lon,
             first->lat   
             ));
+        if (first->name != wxEmptyString){
+            result.Append(wxString::Format(wxT(
+                JSON_SV(name,%s) ",\n"
+                ),
+                StringHelper::safeJsonString(first->name)    
+            ));
+        }
         for (nvit=properties.begin();nvit!=properties.end();nvit++){
-            result.Append(",");
             result.Append(wxString::Format(wxT(            
             JSON_SV(%s,%s)
             ),
                     nvit->first,
                     StringHelper::safeJsonString(nvit->second)
             ));
+            result.Append(",\n");
         }
     }
+    result.Append(wxString::Format(wxT(
+        JSON_SV(htmlInfo,%s)
+        ),
+        StringHelper::safeJsonString(html)
+    ));
     result.Append(wxT("}"));
     LOG_DEBUG("Renderer::FeatureRequest for %s: %s",tile.ToString(),msg->GetTimings());
     msg->Unref();

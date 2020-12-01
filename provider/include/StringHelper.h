@@ -55,6 +55,9 @@ public:
         allowed.ReplaceAll(&rt,wxT("_"));
         return rt;
     }
+    static wxString safeHtmlString(wxString in){
+        return in; //TODO
+    }
 
 };
 
