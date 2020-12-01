@@ -114,12 +114,12 @@ public:
             float lon,
             float tolerance);
     virtual     void Process(bool discard=false);
-    wxString    GetResult();
+    ObjectList*  GetResult();
 private:
     float  lat;
     float  lon;
     float  tolerance;
-    wxString result;
+    ObjectList result;
 };
 
 class Renderer{

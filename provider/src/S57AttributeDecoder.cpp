@@ -48,6 +48,9 @@ bool readCsv(wxString s57Dir,wxString name,LineHandler *handler ){
         }
         line.Replace("\r","");
         wxArrayString parts=wxSplit(line,',');
+        for (size_t i=0;i<parts.GetCount();i++){
+            parts.Item(i).Replace("\"","");
+        }
         handler->handleLine(parts,num);
     }
     return true;

@@ -30,6 +30,7 @@
 #include "georef.h"
 #include <wx/dcmemory.h>
 #include <wx/time.h>
+#include <wx-3.0/wx/tokenzr.h>
 #include "Logger.h"
 #include "StringHelper.h"
 #include "pi_s52s57.h"
@@ -250,10 +251,6 @@ ObjectList ChartInfo::FeatureInfo(PlugIn_ViewPort& VPoint,
     for (it=objList->begin();it!=objList->end();it++){
         PI_S57Obj *obj=*it;
         ObjectDescription desc(obj);
-        ListOfPI_S57Obj oneElement;
-        oneElement.Append(obj);
-        oneElement.DeleteContents(false);
-        desc.html=pluginChart->CreateObjDescriptions(&oneElement);
         desc.ComputeDistance(lon,lat);
         rt.push_back(desc);
     }
@@ -269,65 +266,72 @@ void ChartInfo::FromCache(int nativeScale, ExtentPI extent){
     this->isValid=true;
 }
 
-class AttributeEntry{
-public:
-    std::vector<wxString> attributes;
-    wxString target;
-    AttributeEntry(wxString target, std::vector<wxString> attributes){
-        this->target=target;
-        this->attributes=attributes;
-    }
-};
 
-static std::vector<AttributeEntry*> mappings={
-  new AttributeEntry("light",{"LITCHR","COLOUR","SIGGRP","SIGPER","SECTR1","SECTR2"}),  
-  new AttributeEntry("color",{"COLOUR"})  
-};
-
-wxString getKeyFromAttr(wxString attr){
-    std::vector<AttributeEntry*>::iterator it;
-    std::vector<wxString>::iterator ait;
-    for (it=mappings.begin();it!=mappings.end();it++){
-        for (ait=(*it)->attributes.begin();ait!=(*it)->attributes.end();ait++){
-            if (*ait == attr) return (*it)->target;
+wxString s57AttrToString(wxString attrName,_S57attVal *value){
+    long ival;
+    switch (value->valType){
+        case OGR_STR:
+        {
+            wxString encoded((char*) value->value, wxConvUTF8);
+            wxString rt;
+            wxStringTokenizer tok(encoded, wxT(","));
+            bool isFirst = true;
+            while (tok.HasMoreTokens()) {
+                if (!isFirst) {
+                    rt.Append(", ");
+                }
+                else{
+                    isFirst = false;
+                }
+                wxString current = tok.GetNextToken();
+                if (current.ToLong(&ival)) {
+                    if (ival == 0) rt.Append(wxT("UNKNOWN"));
+                    else {
+                        wxString converted = S57AttributeDecoder::GetInstance()->DecodeAttribute(attrName, current);
+                        if (converted.IsEmpty()) {
+                            rt.Append(current);
+                        } else {
+                            rt.Append(converted);
+                        }
+                    }
+                }
+                else{
+                    rt.Append(current);
+                }
+            }
+            return rt;
         }
-    }
-    return wxEmptyString;
-}
-void initializeParameterMap(std::map<wxString,wxString> *map){
-    std::vector<AttributeEntry*>::iterator it;
-    for (it=mappings.begin();it!=mappings.end();it++){
-        (*map)[(*it)->target]=wxEmptyString;
+        case OGR_INT:
+        {
+            wxString rt;
+            rt.Printf("%d", *((int*) value->value));
+            wxString decoded = S57AttributeDecoder::GetInstance()->DecodeAttribute(attrName, rt);
+            return decoded.IsEmpty() ? rt : decoded;
+        }
+        case OGR_REAL:
+        {
+            return wxString::Format(wxT("%4.1f"),*((double *)value->value));
+        }
+        default:
+            return wxT("UNKNOWN");
     }
 }
 
 ObjectDescription::ObjectDescription(PI_S57Obj* obj) {
-    memcpy(featureName,obj->FeatureName,sizeof(featureName));
+    featureName=wxString( obj->FeatureName, wxConvUTF8 );
     primitiveType=obj->Primitive_type;
-    html=wxEmptyString;
     //TODO: check if this is reliable
     lat=obj->m_lat;
     lon=obj->m_lon;
-    initializeParameterMap(&param);
     char *curAttr=obj->att_array;
     for (int i=0;i< obj->n_attr;i++){
         wxString attrName=wxString(curAttr,wxConvUTF8,6);
         curAttr+=6;
-        wxString key=getKeyFromAttr(attrName);
-        if (key != wxEmptyString){
-            if (obj->attVal->Item(i)->valType == OGR_STR){
-                //for now only strings
-                wxString encoded=(const char *)(obj->attVal->Item(i)->value);
-                wxString value=S57AttributeDecoder::GetInstance()->DecodeAttribute(attrName,encoded);
-                if (value != wxEmptyString){
-                    param[key].Append(value).Append(" ");
-                }
-            }
-        }
+        wxString value=s57AttrToString(attrName,obj->attVal->Item(i));
         if (attrName == wxString("OBJNAM")){
-            wxString name=(const char *)(obj->attVal->Item(i)->value);
-            this->name=name;
+            this->name=value;
         }
+        param[attrName]=value;
     }
     distance=-1;
 }
@@ -368,7 +372,7 @@ wxString ObjectDescription::ToJson(){
                 lat
                 ));
     }
-    std::map<wxString,wxString>::iterator it;
+    NameValueMap::iterator it;
     for (it=param.begin();it != param.end();it++){
         if (it->second != wxEmptyString){
             rt.Append(wxString::Format(

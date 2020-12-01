@@ -33,6 +33,7 @@
 #include <wx/dynarray.h>
 #include <wx/dc.h>
 #include "Tiles.h"
+#include "Types.h"
 #include <map>
 
 /**
@@ -113,17 +114,16 @@ public:
 class ObjectDescription{
 public:
     ObjectDescription(PI_S57Obj *obj);
-    wxString    html;
-    int         primitiveType;
-    char        featureName[8];
-    double      lat;
-    double      lon;
-    double      distance;
-    wxString    name;
-    std::map<wxString,wxString> param;
-    bool        IsPoint();
-    wxString    ToJson();
-    double      ComputeDistance(double lon,double lat);
+    int             primitiveType;
+    wxString        featureName;
+    double          lat;
+    double          lon;
+    double          distance;
+    wxString        name;
+    NameValueMap    param;
+    bool            IsPoint();
+    wxString        ToJson();
+    double          ComputeDistance(double lon,double lat);
 };
 
 typedef std::vector<ObjectDescription> ObjectList;

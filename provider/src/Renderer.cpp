@@ -164,18 +164,6 @@ FeatureInfoMessage::FeatureInfoMessage(
 }
 
 
-bool objectDescriptionSort(ObjectDescription first, ObjectDescription second){
-    //1.we prefer points
-    //2.we sort by distance
-    //3.we prefer lights
-    if (first.IsPoint() && ! second.IsPoint())return true;
-    if (second.IsPoint() && ! first.IsPoint()) return false;    
-    if (first.distance < second.distance) return true;
-    if (first.distance > second.distance) return false;
-    if (strcmp("LIGHTS",first.featureName) == 0 && strcmp("LIGHTS",second.featureName) != 0) return true;
-    return false;
-}
-
 void FeatureInfoMessage::Process(bool discard){
     if (discard){
         SetDone();
@@ -201,46 +189,20 @@ void FeatureInfoMessage::Process(bool discard){
     WeightedChartList infos=GetChartList();
     wxRegion region(0,0,TILE_SIZE,TILE_SIZE);
     LOG_DEBUG(_T("merge match for %d/%d/%d with %d entries"),tile.zoom,tile.x,tile.y,(int)infos.size());
-    ObjectList completeList;
 
     for (int i=infos.size()-1;i>=0;i--){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=chart->GetNativeScale();
         manager->OpenChart(chart); //ensure the chart to be open
         ObjectList list=chart->FeatureInfo(vpoint,lat,lon,tolerance);
-        completeList.insert(completeList.end(),list.begin(),list.end());
+        result.insert(result.end(),list.begin(),list.end());
     }
-    std::sort(completeList.begin(),completeList.end(),objectDescriptionSort);
-    ObjectList::iterator it;
-    wxString rt = "{\"objects\":[";
-    wxString html="";
-    bool isFirst = true;
-    ObjectDescription *last=NULL;
-    for (it = completeList.begin(); it != completeList.end(); it++) {
-        if (!isFirst) rt.Append(",");
-        isFirst = false;
-        if (last != NULL){
-            if (strncmp(last->featureName,it->featureName,sizeof(last->featureName)) == 0 &&
-            last->lat == it->lat &&
-            last->lon == it->lon &&
-            last->name == it->name){
-                last=&(*it);
-                continue;
-            }
-        }
-        last=&(*it);
-        rt.Append(it->ToJson());
-        html.Append(it->html);
-    }
-    rt.Append("]\n,\"html\":\"");
-    rt.Append(StringHelper::safeJsonString(html)).Append("\"}");
-    this->result=rt;
     renderOk=true;
     SetDone();
 }
 
-wxString FeatureInfoMessage::GetResult(){
-    return result;
+ObjectList* FeatureInfoMessage::GetResult(){
+    return &result;
 }
 
 //must be called in main thread
@@ -430,6 +392,35 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
     
 }
 
+bool objectDescriptionSort(ObjectDescription first, ObjectDescription second){
+    //1.we prefer points
+    //2.we sort by distance
+    //3.we prefer lights
+    if (first.IsPoint() && ! second.IsPoint())return true;
+    if (second.IsPoint() && ! first.IsPoint()) return false;    
+    if (first.distance < second.distance) return true;
+    if (first.distance > second.distance) return false;
+    if (strcmp("LIGHTS",first.featureName) == 0 && strcmp("LIGHTS",second.featureName) != 0) return true;
+    return false;
+}
+
+class AttributeEntry{
+public:
+    std::vector<wxString> attributes;
+    wxString target;
+    AttributeEntry(wxString target, std::vector<wxString> attributes){
+        this->target=target;
+        this->attributes=attributes;
+    }
+};
+
+typedef std::vector<AttributeEntry*> AttributeMappings;
+static AttributeMappings mappings={
+  new AttributeEntry("light",{"LITCHR","SIGGRP","SIGPER","SECTR1","SECTR2"}),  
+  new AttributeEntry("color",{"COLOUR"}),
+  new AttributeEntry("name",{"OBJNAME"})    
+};
+
 wxString Renderer::FeatureRequest(
         ChartSet* set, 
         TileInfo& tile, 
@@ -449,7 +440,60 @@ wxString Renderer::FeatureRequest(
         msg->Unref();
         return wxEmptyString;
     }
-    wxString result=msg->GetResult();
+    ObjectList *completeList=msg->GetResult();
+    std::sort(completeList->begin(),completeList->end(),objectDescriptionSort);
+    ObjectList::iterator it;
+    NameValueMap properties;
+    bool isFirst = true;
+    ObjectDescription *last=NULL,*first=NULL;
+    AttributeMappings::iterator mit;
+    NameValueMap::iterator nvit;
+    std::vector<wxString>::iterator sit;
+    for (it = completeList->begin(); it != completeList->end(); it++) {
+        if (last != NULL){
+            if (last->featureName == it->featureName &&
+            last->lat == it->lat &&
+            last->lon == it->lon &&
+            last->name == it->name){
+                last=&(*it);
+                continue;
+            }
+        }
+        last=&(*it);       
+        if (first == NULL) first=&(*it);
+        if (!it->IsPoint()) continue; //leave out others for now
+        if (it->lat != first->lat || it->lon != first->lon){
+            //only consider objects with the same coordinates like the first
+            continue;
+        }
+        for (mit=mappings.begin();mit!=mappings.end();mit++){
+            for (sit=(*mit)->attributes.begin();sit!=(*mit)->attributes.end();sit++){
+                nvit=it->param.find(*sit);
+                if (nvit != it->param.end()){
+                    properties[(*mit)->target].Append(nvit->second).Append(" ");
+                }
+            }
+        }
+    }
+    wxString result(wxT("{"));
+    if (first){
+        result.Append(wxString::Format(wxT(
+            "\"nextTarget\":[%f,%f],\n"
+            ),
+            first->lon,
+            first->lat   
+            ));
+        for (nvit=properties.begin();nvit!=properties.end();nvit++){
+            result.Append(",");
+            result.Append(wxString::Format(wxT(            
+            JSON_SV(%s,%s)
+            ),
+                    nvit->first,
+                    StringHelper::safeJsonString(nvit->second)
+            ));
+        }
+    }
+    result.Append(wxT("}"));
     LOG_DEBUG("Renderer::FeatureRequest for %s: %s",tile.ToString(),msg->GetTimings());
     msg->Unref();
     return result;
