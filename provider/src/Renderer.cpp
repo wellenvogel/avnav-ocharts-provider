@@ -463,8 +463,8 @@ wxString objectToHtml(ObjectDescription *obj){
     ));
     if (obj->IsPoint()){
         rt.Append("<div class=\"coordinate\">")
-            .Append(formatCoordinate(obj->lat,true)).Append(" ")
-            .Append(formatCoordinate(obj->lon,false))
+            .Append(StringHelper::safeHtmlString(formatCoordinate(obj->lat,true))).Append(" ")
+            .Append(StringHelper::safeHtmlString(formatCoordinate(obj->lon,false)))
             .Append("</div>");
     }
     NameValueMap::iterator it;

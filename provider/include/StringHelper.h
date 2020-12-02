@@ -56,7 +56,16 @@ public:
         return rt;
     }
     static wxString safeHtmlString(wxString in){
-        return in; //TODO
+        wxString rt;
+        for (size_t i=0;i<in.Length();i++){
+            wxUniChar c=in.GetChar(i);
+            if (c < 0x80) {
+                rt.Append(c);
+                continue;
+            }
+            rt.Append(wxString::Format("&#%d;",c));
+        }
+        return rt;
     }
 
 };
