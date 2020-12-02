@@ -449,7 +449,9 @@ class Plugin:
     providerPid=-1
     if len(processes) > 0:
       if len(own) != len(processes):
-        self.api.log("there are provider processes running from other users: %s",",".join(map(lambda x: str(x[0]),list(set(processes)-set(own)))))
+        diff=filter(lambda e: not e in own,processes)
+        diffstr=map(lambda e: unicode(e),diff)
+        self.api.log("there are provider processes running from other users: %s",",".join(diffstr))
       if len(own) > 0:
         #TODO: handle more then one process
         self.api.log("we already see a provider running with pid %d, trying this one"%filtered[0][0])
