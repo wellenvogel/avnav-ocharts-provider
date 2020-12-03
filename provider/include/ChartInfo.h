@@ -124,6 +124,7 @@ public:
     bool            IsPoint();
     wxString        ToJson();
     double          ComputeDistance(double lon,double lat);
+    bool            IsSimilar(ObjectDescription &other);
 };
 
 typedef std::vector<ObjectDescription> ObjectList;

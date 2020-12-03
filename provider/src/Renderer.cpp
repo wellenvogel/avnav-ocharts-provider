@@ -428,8 +428,7 @@ public:
 };
 
 typedef std::vector<AttributeEntry*> AttributeMappings;
-static AttributeMappings mappings={
-  new AttributeEntry("light",{"LIGHTS","LIGHTFLOAT"},{"OBJNAME","LITCHR","LITVIS","SIGGRP","SIGPER","SIGSEQ","SECTR1","SECTR2"}),  
+static AttributeMappings mappings={ 
   new AttributeEntry("buoy",{"BOYSPP","BOYCAR","BOYINB","BOYISD","BOYLAT","BOYSAW"},
     {"OBJNAM","BOYSHP","COLOUR"}),
   new AttributeEntry("top",{"TOPMAR"},
@@ -448,11 +447,36 @@ wxString formatCoordinate(double coordinate,bool isLat){
     double abs=floor(coordinate);
     double minutes=60*(coordinate-abs);
     if (!isLat){
-        return wxString::Format(wxT("%03.0f\u00B0%2.2f%c"),abs,minutes,(isNeg?'W':'E'));
+        return wxString::Format(wxT("%03.0f\u00B0%2.4f%c"),abs,minutes,(isNeg?'W':'E'));
     }
     else{
-        return wxString::Format(wxT("%02.0f\u00B0%2.2f%c"),abs,minutes,(isNeg?'S':'N'));
+        return wxString::Format(wxT("%02.0f\u00B0%2.4f%c"),abs,minutes,(isNeg?'S':'N'));
     }
+}
+
+void addIfExists(wxString &dest /*out*/,NameValueMap &map,wxString key,
+        wxString post=wxEmptyString,wxString pre=wxEmptyString){
+    NameValueMap::iterator it;
+    it=map.find(key);
+    if (it == map.end()) return;
+    dest.Append(pre);
+    dest.Append(it->second);
+    dest.Append(post);
+}
+
+wxString formatLight(ObjectDescription *obj){
+    wxString rt=wxEmptyString;
+    if (obj->featureName != wxT("LIGHTS")) return rt;
+    addIfExists(rt,obj->param,"LITCHR"," ");
+    addIfExists(rt,obj->param,"COLOUR"," ");
+    addIfExists(rt,obj->param,"SIGGRP"," ");
+    addIfExists(rt,obj->param,"SIGPER","s ");
+    addIfExists(rt,obj->param,"HEIGHT","m ");
+    addIfExists(rt,obj->param,"VALNMR","nm ");
+    addIfExists(rt,obj->param,"SECTR1",wxT("\u00B0 - "),"(");
+    addIfExists(rt,obj->param,"SECTR2",wxT("\u00B0)"));
+    if (rt != wxEmptyString) rt.Append(" ");
+    return rt;
 }
 wxString objectToHtml(ObjectDescription *obj){
     S57AttributeDecoder *decoder=S57AttributeDecoder::GetInstance();
@@ -489,7 +513,8 @@ wxString Renderer::FeatureRequest(
         ChartSet* set, 
         TileInfo& tile, 
         double lat, double lon, double tolerance) {
-    LOG_DEBUG(wxT("Renderer::FeatureRequest: set=%s, tile=%s"),
+    static const wxString fct("Renderer::FeatureRequest");
+    LOG_DEBUG(wxT("%s: set=%s, tile=%s"),fct,
             set->GetKey(),tile.ToString());
     FeatureInfoMessage *msg=new FeatureInfoMessage(tile,set,
             this,manager->GetSettings()->GetCurrentSequence(),lat,lon,tolerance);
@@ -500,7 +525,7 @@ wxString Renderer::FeatureRequest(
     }
     bool rt=msg->WaitForResult(800000);
     if (! rt || ! msg->IsOk()) {
-        LOG_ERROR(_T("Renderer::FeatureRequest failed for %s"),tile.ToString());
+        LOG_ERROR(_T("%s failed for %s"),fct,tile.ToString());
         msg->Unref();
         return wxEmptyString;
     }
@@ -509,36 +534,43 @@ wxString Renderer::FeatureRequest(
     ObjectList::iterator it;
     NameValueMap properties;
     bool isFirst = true;
-    ObjectDescription *last=NULL,*first=NULL;
     AttributeMappings::iterator mit;
     NameValueMap::iterator nvit;
     std::vector<wxString>::iterator sit;
+    typedef std::vector<ObjectDescription*> ObjectPtrList;
+    ObjectPtrList handled;
+    ObjectPtrList::iterator hit;
+    ObjectDescription *first=NULL;
     wxString html;
     for (it = completeList->begin(); it != completeList->end(); it++) {
-        if (last != NULL){
-            if (last->featureName == it->featureName &&
-            last->lat == it->lat &&
-            last->lon == it->lon &&
-            last->name == it->name){
-                last=&(*it);
-                continue;
+        bool skip=false;
+        if (handled.size() > 0){
+            for (hit=handled.begin() ;hit!=handled.end();hit++){
+                if (it->IsSimilar(**hit)){
+                    LOG_DEBUG(wxT("%s: skip s57object %s, already in list"),fct,it->ToJson());
+                    skip=true;
+                    break;
+                }
             }
         }
-        last=&(*it);       
-        if (first == NULL) first=&(*it);
+        if (skip) continue;
+        handled.push_back(&(*it));            
         html.Append(objectToHtml(&(*it)));
         if (!it->IsPoint()) continue; //leave out others for now
+        if (first == NULL) first=&(*it);
         if (it->lat != first->lat || it->lon != first->lon){
+            LOG_DEBUG(wxT("%s: skip s57 object %s, other coordinate"),fct,it->ToJson());
             //only consider objects with the same coordinates like the first
             continue;
         }
+        wxString light=formatLight(&(*it));
+        if (light != wxEmptyString) properties["light"].Append(light);
         for (mit=mappings.begin();mit!=mappings.end();mit++){
-            if (!(*mit)->MatchesFeature(it->featureName)) continue;
-            properties[(*mit)->target]=S57AttributeDecoder::GetInstance()->GetFeatureText(it->featureName,true);
+            if (!(*mit)->MatchesFeature(it->featureName)) continue;          
             for (sit=(*mit)->attributes.begin();sit!=(*mit)->attributes.end();sit++){
                 nvit=it->param.find(*sit);
                 if (nvit != it->param.end()){
-                    properties[(*mit)->target].Append(" ").Append(nvit->second);
+                    properties[(*mit)->target].Append(nvit->second).Append(" ");
                 }
             }
         }
@@ -546,8 +578,10 @@ wxString Renderer::FeatureRequest(
     wxString result(wxT("{"));
     if (first){
         result.Append(wxString::Format(wxT(
+            JSON_SV(firstType,%s) ",\n"
             "\"nextTarget\":[%f,%f],\n"
             ),
+            first->featureName,    
             first->lon,
             first->lat   
             ));
@@ -574,7 +608,7 @@ wxString Renderer::FeatureRequest(
         StringHelper::safeJsonString(html)
     ));
     result.Append(wxT("}"));
-    LOG_DEBUG("Renderer::FeatureRequest for %s: %s",tile.ToString(),msg->GetTimings());
+    LOG_DEBUG("%s for %s: %s, res=%s",fct,tile.ToString(),msg->GetTimings(),result);
     msg->Unref();
     return result;
 }

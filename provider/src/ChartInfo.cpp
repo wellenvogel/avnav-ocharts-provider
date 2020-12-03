@@ -35,6 +35,7 @@
 #include "StringHelper.h"
 #include "pi_s52s57.h"
 #include "S57AttributeDecoder.h"
+#include <algorithm>
 
 
 ZoomLevelScales::ZoomLevelScales(double scaleLevel) {
@@ -321,8 +322,8 @@ ObjectDescription::ObjectDescription(PI_S57Obj* obj) {
     featureName=wxString( obj->FeatureName, wxConvUTF8 );
     primitiveType=obj->Primitive_type;
     //TODO: check if this is reliable
-    lat=obj->m_lat;
-    lon=obj->m_lon;
+    lat=(primitiveType == GEO_POINT)?obj->m_lat:-1;
+    lon=(primitiveType == GEO_POINT)?obj->m_lon:-1;
     char *curAttr=obj->att_array;
     for (int i=0;i< obj->n_attr;i++){
         wxString attrName=wxString(curAttr,wxConvUTF8,6);
@@ -386,4 +387,33 @@ wxString ObjectDescription::ToJson(){
     }
     rt.Append("}");
     return rt;
+}
+//we ignore a couple of attributes if when checking for equality
+//to avoid getting the same object twice from different charts
+std::vector<wxString> IGNORED_ATTRIBUTES={"SCAMIN","SORIND","SORDAT","SIGSEQ"};
+bool ObjectDescription::IsSimilar(ObjectDescription& other){
+    if (featureName != other.featureName ||
+            lat != other.lat || 
+            lon != other.lon || 
+            name != other.name) return false;
+    NameValueMap::iterator it,oit;
+    for (it=other.param.begin();it!=other.param.end();it++){       
+        if (std::find(IGNORED_ATTRIBUTES.begin(),IGNORED_ATTRIBUTES.end(),it->first)!= IGNORED_ATTRIBUTES.end()){
+            continue;
+        }
+        oit=param.find(it->first);
+        if (oit == param.end()|| oit->second != it->second){
+            return false;
+        }
+    }
+    for (it=param.begin();it!=param.end();it++){
+        if (std::find(IGNORED_ATTRIBUTES.begin(),IGNORED_ATTRIBUTES.end(),it->first)!= IGNORED_ATTRIBUTES.end()){
+            continue;
+        }
+        oit=other.param.find(it->first);
+        if (oit == other.param.end() || oit->second != it->second){
+            return false;
+        }
+    }
+    return true;
 }
