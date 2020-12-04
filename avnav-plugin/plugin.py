@@ -308,6 +308,7 @@ class Plugin:
     try:
       items=self.chartList+[]
       for item in items:
+        item['hasFeatureInfo']=True
         if iconUrl is not None:
           item['icon']=iconUrl
         for k in item.keys():
