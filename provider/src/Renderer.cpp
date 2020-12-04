@@ -432,7 +432,8 @@ static AttributeMappings mappings={
   new AttributeEntry("buoy",{"BOYSPP","BOYCAR","BOYINB","BOYISD","BOYLAT","BOYSAW"},
     {"OBJNAM","BOYSHP","COLOUR"}),
   new AttributeEntry("top",{"TOPMAR"},
-    {"OBJNAM","COLOUR","COLPAT","HEIGHT"})
+    {"OBJNAM","COLOUR","COLPAT","HEIGHT"}),
+  new AttributeEntry("light",{"LIGHTS"},{}) //only added to allow a light for nextTarget
 };
 
 wxString formatCoordinate(double coordinate,bool isLat){
@@ -508,7 +509,6 @@ wxString objectToHtml(ObjectDescription *obj){
     rt.Append("</div>");
     return rt;
 }
-
 wxString Renderer::FeatureRequest(
         ChartSet* set, 
         TileInfo& tile, 
@@ -575,16 +575,26 @@ wxString Renderer::FeatureRequest(
             }
         }
     }
+    
     wxString result(wxT("{"));
     if (first){
-        result.Append(wxString::Format(wxT(
-            JSON_SV(firstType,%s) ",\n"
-            "\"nextTarget\":[%f,%f],\n"
-            ),
-            first->featureName,    
-            first->lon,
-            first->lat   
+        bool hasNextTarget=false;
+        for (AttributeMappings::iterator it=mappings.begin();it!=mappings.end();it++){
+            if ((*it)->MatchesFeature(first->featureName)){
+                hasNextTarget=true;
+                break;
+            }
+        }
+        if (hasNextTarget){
+            result.Append(wxString::Format(wxT(
+                JSON_SV(firstType,%s) ",\n"
+                "\"nextTarget\":[%f,%f],\n"
+                ),
+                first->featureName,    
+                first->lon,
+                first->lat   
             ));
+        }
         if (first->name != wxEmptyString){
             result.Append(wxString::Format(wxT(
                 JSON_SV(name,%s) ",\n"
