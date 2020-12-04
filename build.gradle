@@ -239,6 +239,7 @@ ospackage {
         from('avnav-plugin') {
             include "*.py"
             include "*.sh"
+            include "*.css"
             fileMode 0755
         }
         from('.'){
