@@ -103,6 +103,7 @@ public:
     bool                AllowOpenRetry();
     CandidateList       GetCandidates(){ return candidates;}
     void                AddChart(ChartInfo *info);
+    int                 GetMinZoom(){return charts->GetMinZoom();}
     void                GetOverview(int &minZoom /*out*/, int &maxZoom/*out*/, BoundingBox &boundings/*out*/);
     WeightedChartList   FindChartForTile(int minZoom,int maxZoom,LatLon &northwest,LatLon &southeast,int goUp=2);
     ChartList::InfoList GetAllCharts(){return charts->GetAllCharts();}

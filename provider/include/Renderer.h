@@ -139,10 +139,11 @@ private:
      * @param set
      * @param tile
      * @param msg
+     * @param allLower: use all lower zoom levels (for feature request)
      * @return true: message ok, false: message deleted (via unref)
      */
     bool            PrepareRenderMessage(ChartSet *set, TileInfo &tile
-                        ,RenderMessageBase* msg);
+                        ,RenderMessageBase* msg, bool allLower=false);
     wxBitmap        *initialBitmap;
     wxColor         backColor;
     

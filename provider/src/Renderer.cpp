@@ -300,7 +300,8 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
  bool Renderer::PrepareRenderMessage(
         ChartSet *set, 
         TileInfo &tile,
-        RenderMessageBase *msg
+        RenderMessageBase *msg,
+        bool allLower  
     ){
     PlugIn_ViewPort vpoint;
     vpoint.pix_width=TILE_SIZE;
@@ -327,7 +328,8 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
         return false;
     }
     vpoint.view_scale_ppm=1/mpp;
-    WeightedChartList infos=set->FindChartForTile(tile.zoom-manager->GetSettings()->GetOverZoom(),
+    int minZoom=allLower?set->GetMinZoom():tile.zoom-manager->GetSettings()->GetOverZoom();
+    WeightedChartList infos=set->FindChartForTile(minZoom,
                 tile.zoom,
                 northwest,
                 southeast,
@@ -518,7 +520,7 @@ wxString Renderer::FeatureRequest(
             set->GetKey(),tile.ToString());
     FeatureInfoMessage *msg=new FeatureInfoMessage(tile,set,
             this,manager->GetSettings()->GetCurrentSequence(),lat,lon,tolerance);
-    if (! PrepareRenderMessage(set,tile,msg))return wxEmptyString;
+    if (! PrepareRenderMessage(set,tile,msg,true))return wxEmptyString;
     if (!queue->Enqueue(msg,1000,false)){
         msg->Unref(); //our own
         return wxEmptyString;
