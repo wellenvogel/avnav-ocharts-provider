@@ -57,6 +57,14 @@ jobs:
               sha: context.sha
             })  
       
+      -
+        name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+                
       - name: gradle build
         env:  
           AVNAV_REPO_USER: ${{ secrets.AVNAV_REPO_USER }}
