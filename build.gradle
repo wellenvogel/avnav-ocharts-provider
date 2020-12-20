@@ -56,6 +56,32 @@ def VARIANTS=[
                 ['libwxgtk3.0-0v5'],
                 ['wx3.0-i18n']
         ]],
+        [osline:'debian',
+         osversion:'buster',
+         arch: 'i386',
+         dockerbase:'i386/debian',
+         dockerfile:'Dockerfile.gtk2',
+         dependencies:[
+                 ['libc6'],
+                 ['libgcc1'],
+                 ['libstdc++6'],
+                 ['libwxbase3.0-0v5'],
+                 ['libwxgtk3.0-0v5'],
+                 ['wx3.0-i18n']
+         ]],
+        [osline:'debian',
+         osversion:'buster',
+         arch: 'amd64',
+         dockerbase:'debian',
+         dockerfile:'Dockerfile.gtk2',
+         dependencies:[
+                 ['libc6'],
+                 ['libgcc1'],
+                 ['libstdc++6'],
+                 ['libwxbase3.0-0v5'],
+                 ['libwxgtk3.0-0v5'],
+                 ['wx3.0-i18n']
+         ]],
         [osline:'raspbian',
          osversion:'buster',
          arch: 'armhf', 
