@@ -43,30 +43,46 @@ import org.eclipse.jgit.lib.ObjectId
 import org.gradle.api.*
 import com.moowork.gradle.node.npm.*
 
-def GE=org.redline_rpm.header.Flags.GREATER|org.redline_rpm.header.Flags.EQUAL
 def VARIANTS=[
-        [osline:'ubuntu',osversion:'bionic', arch: 'amd64', dependencies: [
-                ['libc6','2.14',GE],
-                ['libgcc1','1:3.0',GE],
-                ['libstdc++6','5.2',GE],
-                ['libwxbase3.0-0v5','3.0.4+dfsg',GE],
-                ['libwxgtk3.0-0v5','3.0.4+dfsg',GE],
+        [osline:'ubuntu',
+         osversion:'bionic', 
+         arch: 'amd64',
+         dockerfile: 'Dockerfile.gtk2',       
+         dependencies: [
+                ['libc6'],
+                ['libgcc1'],
+                ['libstdc++6'],
+                ['libwxbase3.0-0v5'],
+                ['libwxgtk3.0-0v5'],
                 ['wx3.0-i18n']
         ]],
-        [osline:'raspbian',osversion:'buster',arch: 'armhf', dependencies:[
-                ['libc6','2.4',GE],
-                ['libgcc1','1:3.5',GE],
-                ['libstdc++6','5.2',GE],
-                ['libwxbase3.0-0v5','3.0.4+dfsg',GE],
-                ['libwxgtk3.0-0v5','3.0.4+dfsg',GE],
+        [osline:'raspbian',
+         osversion:'buster',
+         arch: 'armhf', 
+         dockerbase:'arm32v7/debian', 
+         dockerfile:'Dockerfile.gtk2',
+         dependencies:[
+                ['libc6'],
+                ['libgcc1'],
+                ['libstdc++6'],
+                ['libwxbase3.0-0v5'],
+                ['libwxgtk3.0-0v5'],
                 ['wx3.0-i18n']
         ]],
+        [osline:'raspbian',
+         osversion:'buster',
+         arch: 'arm64',
+         dockerbase:'arm64v8/debian',
+         dockerfile:'Dockerfile.gtk2',
+         dependencies:[
+                 ['libc6'],
+                 ['libgcc1'],
+                 ['libstdc++6'],
+                 ['libwxbase3.0-0v5'],
+                 ['libwxgtk3.0-0v5'],
+                 ['wx3.0-i18n']
+         ]],
 	
-]
-
-def DOCKER=[
-        'ubuntu': ['script':file("docker/build-devenv.sh")],
-        'raspbian':['script':file("docker/build-pi-cross.sh")]
 ]
 
 
@@ -236,41 +252,79 @@ ospackage {
         }
     }
 }
+def imageExists(name){
+    def id="docker images -q \"$name\"".execute().text.replaceAll("[\r\n]*","")
+}
 
+class DockerBuild extends Exec{
+    public static def getImageName(osline,osversion,arch){
+       return "avnavocharts-build-$osline-$osversion-$arch"
+    }
+    def dockerBase
+    def osline
+    def osversion
+    def arch
+    def dockerFile
+    @TaskAction
+    void exec(){
+        assert osline != null
+        assert osversion != null
+        assert dockerFile != null
+        assert arch != null
+        def uid="id -u".execute().text.replaceAll("[\r\n]*","")
+        assert uid
+        def gid="id -g".execute().text.replaceAll("[\r\n]*","")
+        assert gid
+        def uname="id -u -n".execute().text.replaceAll("[\r\n]*","")
+        assert uname
+        logger.info("uid=$uid,gid=$gid,uname=$uname")
+        def imageName=getImageName(osline,osversion,arch)
+        if (dockerBase == null) dockerBase=osline
+        executable "docker"
+        workingDir project.file("docker")
+        args(['build', '--build-arg',"OSLINE=$dockerBase",
+                '--build-arg',"OSVERSION=$osversion",
+                '--build-arg',"UID=$uid",
+                '--build-arg',"GID=$gid",
+                '--build-arg',"USER=$uname",
+                '-f', dockerFile,
+                '-t', imageName,'.'])
+        super.exec()
+    }
+}
 VARIANTS.each { variant ->
-    def dockercfg=DOCKER[variant.osline]
-    assert dockercfg != null
-    def suffix="${variant.osline}-${variant.osversion}"
-    def imageName="opencpn-build:${variant.osline}-${variant.osversion}"
-    def dt=tasks.create(name: "dockerbuild-${suffix}",type: Exec){ Exec e->
-        e.executable(dockercfg.script)
-        e.workingDir(file("docker"))
-        e.environment([CONTINUE:1])
-        e.args("-l",variant.osline,"-r",variant.osversion,"-t",imageName)
+    def imageName=DockerBuild.getImageName(variant.osline,variant.osversion,variant.arch)
+    def dt=tasks.create(name: "dockerbuild-${imageName}",type: DockerBuild){ DockerBuild e->
+        e.dockerFile=variant.dockerfile
+        e.dockerBase=variant.dockerbase
+        e.osline=variant.osline
+        e.osversion=variant.osversion
+        e.arch=variant.arch
     }
     logger.lifecycle("created docker build task ${dt.name}")
-    def buildTarget="release"
-    if (variant.osline == "raspbian") buildTarget="raspi"
-    def exeBuild=tasks.create(name:"build-${suffix}",type: Exec){ Exec e->
+    def workName="${variant.osline}-${variant.osversion}-${variant.arch}"
+    def exeBuild=tasks.create(name:"build-${workName}",type: Exec){ Exec e->
         e.workingDir(file("provider"))
         e.executable(file("provider/build.sh"))
-        e.args("-a","-i",imageName,"-b","${suffix}","-u")
+        e.args("-a")
         if (project.hasProperty("cleanBefore")) {
             e.args("-c")
         }
-        e.args(buildTarget)
+        e.args(workName)
+        e.args(imageName)
+        e.dependsOn(dt)
     }
     tasks.build.dependsOn(exeBuild)
     logger.lifecycle("created build task ${exeBuild.name}")
-    def buildOutput="provider/${suffix}"
+    def buildOutput="provider/${workName}"
     def exeName="AvnavOchartsProvider"
     def tkHandler="tokenHandler.js"
-    def debBuild=tasks.create(name:"package-${suffix}",type: Deb){  d ->
+    def debBuild=tasks.create(name:"package-${workName}",type: Deb){  d ->
         variant.dependencies.each { dep->
             d.requires dep
         }
         d.packageName "avnav-ocharts-plugin"
-        d.version="${project.avnavVersion}-${suffix}"
+        d.version="${project.avnavVersion}-${variant.osline}-${variant.osversion}"
         d.arch=variant.arch
         d.into("/usr/lib/avnav/plugins/ocharts"){
             from(buildOutput) {
@@ -288,7 +342,7 @@ VARIANTS.each { variant ->
     debBuild.dependsOn(exeBuild)
     debBuild.dependsOn(':gui:viewerRelease')
     tasks.packages.dependsOn debBuild
-    def cleanTask=tasks.create(name: "clean-${suffix}",type: Delete){ c->
+    def cleanTask=tasks.create(name: "clean-${workName}",type: Delete){ c->
         delete buildOutput
     }
     tasks.clean.dependsOn(cleanTask)
