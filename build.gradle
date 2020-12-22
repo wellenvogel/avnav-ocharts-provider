@@ -413,7 +413,7 @@ task uploadRepoDaily(type: UploadSftp){
 }
 
 task uploadRepoRelease(type: UploadSftp){
-    server='free-x'
+    server='free-x.de'
     base=''
     baseDir="release/avnav-ocharts-provider/${project.avnavVersion}"
     inputFiles=packageList
