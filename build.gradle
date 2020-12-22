@@ -403,10 +403,19 @@ task uploadDaily(type: UploadTask){
 
 }
 
-task uploadDailyRepo(type: UploadSftp){
+task uploadRepoDaily(type: UploadSftp){
     server='sftp.hidrive.strato.com'
-    base='/public'
-    baseDir="share/xxx"
+    base=''
+    baseDir="/public/share/ocharts-provider/daily/${project.avnavVersion}"
+    inputFiles=packageList
+    user="andvogel"
+    dependsOn cleanGui,packages
+}
+
+task uploadRepoRelease(type: UploadSftp){
+    server='sftp.hidrive.strato.com'
+    base=''
+    baseDir="/public/share/ocharts-provider/release/${project.avnavVersion}"
     inputFiles=packageList
     user="andvogel"
     dependsOn cleanGui,packages

@@ -67,6 +67,7 @@ class UploadSftp extends DefaultTask{
      * @param path
      */
     private void createRemoteDirAndCd(ChannelSftp client, String path) throws Exception{
+        path=path.replaceAll("^//*","/")
         if (createdDirs.contains(path)) {
             client.cd(path)
             return
