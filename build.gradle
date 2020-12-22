@@ -416,7 +416,7 @@ task uploadDailyTest(type: UploadSftp){
     server='sftp.hidrive.strato.com'
     base='/public'
     baseDir="share/xxx"
-    inputFile="build.gradle"
+    inputFile=file("build.gradle")
     user="andvogel"
 }
 
