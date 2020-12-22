@@ -399,15 +399,30 @@ def packageList=fileTree("build/distributions",{
 task uploadDaily(type: UploadTask){
     dependsOn cleanGui,packages, uploadAccessDaily
     inputFiles=packageList
-    baseDir=uploadDailyDir
-    subDir=project.avnavVersion
+    baseDir="$uploadDailyDir/${project.avnavVersion}"
 
 }
+
+task uploadDailyRepo(type: UploadSftp){
+    server='sftp.hidrive.strato.com'
+    base='/public'
+    baseDir="share/xxx"
+    inputFiles=packageList
+    user="andvogel"
+    dependsOn cleanGui,packages
+}
+
+task uploadDailyTest(type: UploadSftp){
+    server='sftp.hidrive.strato.com'
+    base='/public'
+    baseDir="share/xxx"
+    inputFile="build.gradle"
+    user="andvogel"
+}
+
 
 task uploadRelease(type: UploadTask){
     dependsOn testGit, cleanGui,packages, uploadAccessRelease
     inputFiles=packageList
-    baseDir=uploadReleaseDir
-    subDir=project.avnavVersion
-
+    baseDir="$uploadReleaseDir/${project.avnavVersion}"
 }
