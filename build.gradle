@@ -404,20 +404,20 @@ task uploadDaily(type: UploadTask){
 }
 
 task uploadRepoDaily(type: UploadSftp){
-    server='sftp.hidrive.strato.com'
+    server='free-x.de'
     base=''
-    baseDir="/public/share/ocharts-provider/daily/${project.avnavVersion}"
+    baseDir="daily/avnav-ocharts-provider/${project.avnavVersion}"
     inputFiles=packageList
-    user="andvogel"
+    user="wellenvogel"
     dependsOn cleanGui,packages
 }
 
 task uploadRepoRelease(type: UploadSftp){
-    server='sftp.hidrive.strato.com'
+    server='free-x'
     base=''
-    baseDir="/public/share/ocharts-provider/release/${project.avnavVersion}"
+    baseDir="release/avnav-ocharts-provider/${project.avnavVersion}"
     inputFiles=packageList
-    user="andvogel"
+    user="wellenvogel"
     dependsOn cleanGui,packages
 }
 
