@@ -41,6 +41,8 @@ CacheFiller::CacheFiller(unsigned long maxPerSet,long maxPrefillZoom,ChartManage
     this->manager=manager;
     this->maxPrefillZoom=maxPrefillZoom;
     this->maxPerSet=maxPerSet;
+    paused=false;
+    pauseTime=0;
     isPrefilling=false;
     isStarted=false;
     
@@ -49,11 +51,17 @@ CacheFiller::CacheFiller(unsigned long maxPerSet,long maxPrefillZoom,ChartManage
 CacheFiller::~CacheFiller() {
 }
 
+void CacheFiller::Pause(bool on) {
+    if (on) pauseTime=wxGetLocalTime();
+    this->paused=on;
+}
+
 wxString CacheFiller::ToJson(){
     Synchronized locker(statusLock);
     wxString rt=wxString::Format("{"
             JSON_IV(prefilling,%s) ",\n"
             JSON_IV(started,%s) ",\n"
+            JSON_IV(paused,%s) ",\n"
             JSON_SV(currentSet,%s) ",\n"
             JSON_IV(currentZoom,%d) ",\n"
             JSON_IV(maxZoom,%d) ",\n"
@@ -62,6 +70,7 @@ wxString CacheFiller::ToJson(){
             JSON_IV(prefillCounts,[) "\n",
             PF_BOOL(isPrefilling),
             PF_BOOL(isStarted),
+            PF_BOOL(paused),
             StringHelper::safeJsonString(currentPrefillSet),
             currentPrefillZoom,
             (int)maxPrefillZoom,
@@ -96,6 +105,29 @@ wxString CacheFiller::ToJson(){
     return rt;
     }
 
+#define MAX_PAUSED (60*5)
+void CacheFiller::SleepPaused() {
+    if (! paused) return;
+    bool notified=false;
+    while(paused){
+        long now=wxGetLocalTime();
+        if (now > (pauseTime + MAX_PAUSED)){
+            break;
+        }
+        if (! notified){
+            LOG_INFO(wxT("Filler pausing"));
+            notified=true;
+        }
+        if (shouldStop()) return;
+        usleep(50000);
+    }
+    if (notified){
+        LOG_INFO(wxT("Filler continuing"));
+    }
+    paused=false;
+}
+
+
 /**
  * compute the candidates we initially put into the cache
  * @param currentSet
@@ -123,6 +155,7 @@ void CacheFiller::RenderPrefill(ChartSet *currentSet) {
             numInSet < numPerSet && zoom <= maxZoom; zoom++) {
         ChartList::InfoList zoomCharts=currentSet->GetZoomCharts(zoom);
         if (shouldStop()) return;
+        SleepPaused();
         if (zoomCharts.size() < 1) continue;
         ChartList::InfoList::iterator it;
         //if we have charts on this layer, we use those
@@ -146,6 +179,7 @@ void CacheFiller::RenderPrefill(ChartSet *currentSet) {
                 if (renderZoom <= maxPrefillZoom) {
                     for (int x = bounds.xmin; x <= bounds.xmax; x++) {
                         for (int y = bounds.ymin; y <= bounds.ymax; y++) {
+                            SleepPaused();
                             if (shouldStop()) return;
                             TileInfo info(
                                     renderZoom, x, y,
@@ -332,7 +366,7 @@ void CacheFiller::run() {
     isPrefilling=false;
     bool isActive = true;
     while (!shouldStop()) {                   
-        CheckRenderHints();
+        if (! paused) CheckRenderHints();
         if (renderHints.size() < 1) {
             if (isActive) {
                 LOG_INFO(wxT("Cache filler finished"));

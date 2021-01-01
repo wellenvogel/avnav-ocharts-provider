@@ -52,12 +52,12 @@ const FillerStatus=(props)=>{
         <StatusItem title="CachePrefill">
             {props.prefilling?
                 <React.Fragment>
-                    <StatusLine label="Status" value="FILLING" icon={true}/>
+                    <StatusLine label="Status" value={props.paused?"PAUSING":"FILLING"} icon={true}/>
                     <StatusLine label="currentSet" value={props.currentSet+" ("+(props.currentSetIndex+1)+"/"+(props.numSets)+")"}/>
                     <StatusLine label="currentZoom" value={props.currentZoom+" from "+props.maxZoom}/>
                 </React.Fragment>
                 :
-                <StatusLine label="Status" value={props.started?"READY":"WAITING"} icon={true}/>
+                <StatusLine label="Status" value={props.paused?"PAUSING":(props.started?"READY":"WAITING")} icon={true}/>
             }
             {prefillCounts.map((item)=>{
                 let info="";

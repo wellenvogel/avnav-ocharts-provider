@@ -289,6 +289,7 @@ public:
                 return new HTTPJsonErrorResponse(
                        wxString::Format(wxT("unable to open tmp file %s"),outName.GetFullPath()));                                
             }
+            LOG_INFO(wxT("uploading chart zip %s"),outName.GetFullPath());
             unsigned long receivedBytes=WriteFromInput(request,&outFile,uploadSize);
             if (receivedBytes != uploadSize){
                 outFile.Close();
@@ -296,9 +297,12 @@ public:
                 return new HTTPJsonErrorResponse("end of stream"); 
             }
             outFile.Close();
+            manager->PauseFiller(true);
+            usleep(500000);
             ZipChartInfo info=ReadChartInfo(outName.GetFullPath());
             if (info.error != wxEmptyString){
                 wxRemoveFile(outName.GetFullPath());
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(
                        wxString::Format(wxT("%s: %s"),
                             outName.GetFullPath(),
@@ -307,16 +311,20 @@ public:
             }
             if (!info.found){
                 wxRemoveFile(outName.GetFullPath());
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse("no Chartinfo.txt in archive");                                
-            }           
+            }
+            LOG_INFO(wxT("found chart info %s"),info.chartInfo.GetFullPath());
             if (info.chartInfo.GetDirCount() != 1){
                 wxRemoveFile(outName.GetFullPath());
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse("Chartinfo.txt must be inside one subdirectory");                                
             }
             wxString chartDir=info.chartInfo.GetPath();
             wxFileName outDir(uploadDir,chartDir);
             if (outDir.Exists()){
                 wxRemoveFile(outName.GetFullPath());
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(
                        wxString::Format(wxT("chart directory %s already exists"),
                         outDir.GetFullPath()));                                
@@ -324,21 +332,25 @@ public:
             wxString setkey=ChartSetInfo::KeyFromChartDir(outDir.GetFullPath());
             if (manager->GetChartSet(setkey)){
                 wxRemoveFile(outName.GetFullPath());
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(
                        wxString::Format(wxT("a chart directory with the same name %s already exists"),
                         setkey));   
             }
+            LOG_INFO(wxT("unpacking charts into %s"),outDir.GetFullPath());
             //now unpack
             wxString errUnpack=Unpack(outName.GetFullPath(),chartDir);
             wxRemoveFile(outName.GetFullPath());
             if (errUnpack != wxEmptyString){
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(errUnpack);    
             }
             //find a first chart file
             wxDir chartDirAsDir(outDir.GetFullPath());
             if (! chartDirAsDir.IsOpened()){
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to read chart dir %s after unpacking"),outDir.GetFullPath()));    
             }
             wxString chartFileName;
@@ -353,6 +365,7 @@ public:
             }
             if (! foundChart){
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("did not find any known chart file in %s"),outDir.GetFullPath()));    
             }
             LOG_INFO(wxT("found chart %s to try, create temp dir with it"),chartFileName);
@@ -364,6 +377,7 @@ public:
             tempDir.Mkdir(wxS_DIR_DEFAULT,wxPATH_MKDIR_FULL);
             if (! tempDir.Exists()){
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp dir %s"),tempDir.GetFullPath()));
             }
             //create a temp chart info without eulas
@@ -371,6 +385,7 @@ public:
             if (! setInfo.infoParsed){
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxT("unable to parse chartinfo"));
             }
             wxFileName chartInfoName(tempDir.GetFullPath(),"Chartinfo.txt");
@@ -378,6 +393,7 @@ public:
             if (! newChartInfo.IsOpened()){
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp chartInfo %s"),chartInfoName.GetFullPath()));                
             }
             newChartInfo.Write(wxString::Format(wxT("UserKey:%s\n"),setInfo.userKey));
@@ -388,6 +404,7 @@ public:
             if (copyError != wxEmptyString){
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy chart to temp dir %s: %s"),chartFileName,copyError));                
             }
                         
@@ -396,12 +413,14 @@ public:
             if (rsp != NULL) {
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return rsp;
             }
             if (! trymsg->handled){
                 trymsg->Unref();
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse("unable to trigger chart open"); 
             }
             bool chartOk=trymsg->ok;
@@ -409,17 +428,24 @@ public:
             if (! chartOk){
                 wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
                 wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxT("The system cannot open charts from this chart set. Maybe wrong key. ChartSet deleted"));
             }
             wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
             ScanMessage *msg=new ScanMessage(manager,outDir.GetFullPath());
             rsp=EnqueueAndWait(queue,msg,"Scan request");
-            if (rsp != NULL) return rsp;
+            if (rsp != NULL) {
+                manager->PauseFiller(false);
+                return rsp;
+            }
             if (! msg->handled){
                 msg->Unref();
+                manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse("unable to trigger rescan"); 
             }
             msg->Unref();
+            manager->PauseFiller(false);
+            LOG_INFO(wxT("ChartSet %s successfully prepared"),outDir.GetFullPath());
             return new HTTPStringResponse(JSON,
                 wxString::Format(wxT("{" JSON_SV(status,OK) "," JSON_SV(chartSet,%s) "}"),
                     ChartSetInfo::KeyFromChartDir(outDir.GetFullPath())));  

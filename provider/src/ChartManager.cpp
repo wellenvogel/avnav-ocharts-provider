@@ -652,6 +652,11 @@ wxString ChartManager::GetCacheFileName(wxString fileName){
     return StringHelper::SanitizeString(name.GetFullName());
 }
 
+void ChartManager::PauseFiller(bool on){
+    if (! filler) return;
+    filler->Pause(on);
+}
+
 bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
     LOG_INFO(wxT("writing chart info cache"));
     if (config == NULL){

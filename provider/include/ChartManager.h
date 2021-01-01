@@ -147,6 +147,7 @@ public:
     unsigned long       GetCurrentCacheSizeKb();
     unsigned long       GetMaxCacheSizeKb();
     wxString            GetCacheFileName(wxString fileName);
+    void                PauseFiller(bool on);
     /**
      * write out extensions and native scale for all charts
      * @param config

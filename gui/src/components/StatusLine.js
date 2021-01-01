@@ -39,6 +39,7 @@ const stateToIcon=(state)=>{
     if (state == "READY") return greenIcon;
     if (state == "WAITING") return greyIcon;
     if (state == "PENDING") return greyIcon;
+    if (state == "PAUSING") return greyIcon;
     if (state == "DELETED") return greyIcon;
     if (state == "INIT") return greyIcon;
     if (state == "INACTIVE") return greyIcon;

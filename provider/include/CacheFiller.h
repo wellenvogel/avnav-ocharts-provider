@@ -38,6 +38,7 @@ public:
     CacheFiller(unsigned long maxPerSet,long maxPrefillZoom,ChartManager *);
     virtual                 ~CacheFiller();
     virtual void            run();
+    void                    Pause(bool on);
     virtual wxString        ToJson() override;
 
 private:
@@ -46,6 +47,7 @@ private:
     std::mutex              statusLock;
     ChartManager            *manager;
     std::deque<TileInfo>    renderHints;
+    void                    SleepPaused();
     void                    RenderPrefill(ChartSet *set);
     void                    CheckRenderHints();
     void                    ProcessRenderHints();
@@ -60,6 +62,8 @@ private:
     int                     numSets;
     int                     currentSetIndex;
     PrefillTiles            prefillTiles;
+    bool                    paused;
+    long                    pauseTime;
     
 };
 
