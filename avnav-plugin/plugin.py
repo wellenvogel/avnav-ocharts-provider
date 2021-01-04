@@ -106,6 +106,12 @@ class Plugin:
           'description': 'a , separated list of namePattern:memMb to be supervised',
           'default': 'xvfb:150'
         }
+        ,
+        {
+          'name': 'supervisionPeriod',
+          'description': 'period for memory checks (in s)',
+          'default': '30'
+        }
       ]
 
   @classmethod
@@ -444,6 +450,11 @@ class Plugin:
       self.api.error("invalid supervision config: %s", self.config.get('supervision'))
       self.api.setStatus("ERROR", "invalid supervision config: %s", self.config.get('supervision'))
       return
+    supervisionPeriod=30
+    try:
+      supervisionPeriod=int(self.config['supervisionPeriod'])
+    except:
+      pass
     processes=self.findProcessByPattern(self.EXENAME)
     own=self.filterProcessList(processes,True)
     alreadyRunning=False
@@ -477,6 +488,7 @@ class Plugin:
     errorReported=False
     self.api.setStatus("STARTED", "provider started with pid %d, connecting at %s" %(providerPid,self.baseUrl))
     ready=False
+    lastSupervision=0
     while True:
       responseData=None
       try:
@@ -490,7 +502,10 @@ class Plugin:
         if status is None or status != 'OK':
           raise Exception("invalid status from provider query")
         self.chartList=responseData['items']
-        self.handleSupervision()
+        now=time.time()
+        if lastSupervision > now or (lastSupervision+supervisionPeriod) < now:
+          self.handleSupervision()
+          lastSupervision=now
       except:
         self.api.debug("exception reading from provider %s"%traceback.format_exc())
         self.connected=False
