@@ -1,3 +1,28 @@
+# -*- coding: utf-8 -*-
+# vim: ts=2 sw=2 et ai
+###############################################################################
+# Copyright (c) 2020-2021 Andreas Vogel andreas@wellenvogel.net
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a
+#  copy of this software and associated documentation files (the "Software"),
+#  to deal in the Software without restriction, including without limitation
+#  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+#  and/or sell copies of the Software, and to permit persons to whom the
+#  Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included
+#  in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+#  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+#  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+#  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+#  DEALINGS IN THE SOFTWARE.
+#
+###############################################################################
+
 import datetime
 import json
 import os
@@ -6,7 +31,10 @@ import re
 import sys
 import time
 import traceback
-import urllib2
+try:
+  from urllib.request import urlopen
+except:
+  from urllib2 import urlopen
 import subprocess
 import platform
 import shutil
@@ -317,8 +345,8 @@ class Plugin:
         item['hasFeatureInfo']=True
         if iconUrl is not None:
           item['icon']=iconUrl
-        for k in item.keys():
-          if type(item[k]) == str or type(item[k]) == unicode:
+        for k in list(item.keys()):
+          if type(item[k]) == str:
             item[k]=item[k].replace("localhost",hostip).replace("127.0.0.1",hostip)
       return items
     except:
@@ -347,7 +375,7 @@ class Plugin:
         return False
     if checkOnly:
       return True
-    candidates=self.filterProcessList(self.findProcessByPattern(supervisions.keys(),checkuser=True,wildcard=True),True)
+    candidates=self.filterProcessList(self.findProcessByPattern(list(supervisions.keys()),checkuser=True,wildcard=True),True)
     if len(candidates) < 1:
       self.api.debug("no matching processes running to supervise")
       return True
@@ -393,7 +421,7 @@ class Plugin:
         return
       self.config[cfg['name']]=v
 
-    for name in self.config.keys():
+    for name in list(self.config.keys()):
       if type(self.config[name]) == str or type(self.config[name]) == unicode:
         self.config[name]=self.config[name].replace("$DATADIR",self.api.getDataDir())
         self.config[name] = self.config[name].replace("$PLUGINDIR", os.path.dirname(__file__))
@@ -407,7 +435,7 @@ class Plugin:
       if not os.path.exists(os.path.join(baseDir,"lib","opencpn")) and os.path.exists(os.path.join(rootBase,"lib","opencpn")):
         self.api.error("internal plugin is set but path does not exist, using external")
         baseDir=rootBase
-    for mdir in self.MANDATORY_DIRS.keys():
+    for mdir in list(self.MANDATORY_DIRS.keys()):
       if self.config[mdir]  == '':
         self.config[mdir] = os.path.join(baseDir,self.MANDATORY_DIRS[mdir])
       dir=self.config[mdir]
@@ -492,7 +520,7 @@ class Plugin:
     while True:
       responseData=None
       try:
-        response=urllib2.urlopen(self.baseUrl,timeout=10)
+        response=urlopen(self.baseUrl,timeout=10)
         if response is None:
           raise Exception("no response on %s"%self.baseUrl)
         responseData=json.loads(response.read())
