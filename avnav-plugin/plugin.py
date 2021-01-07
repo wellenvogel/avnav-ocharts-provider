@@ -33,6 +33,7 @@ import time
 import traceback
 try:
   from urllib.request import urlopen
+  unicode=str
 except:
   from urllib2 import urlopen
 import subprocess
@@ -346,7 +347,7 @@ class Plugin:
         if iconUrl is not None:
           item['icon']=iconUrl
         for k in list(item.keys()):
-          if type(item[k]) == str:
+          if type(item[k]) == str or type(item[k]) == unicode:
             item[k]=item[k].replace("localhost",hostip).replace("127.0.0.1",hostip)
       return items
     except:
