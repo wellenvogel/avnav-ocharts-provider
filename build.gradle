@@ -246,7 +246,7 @@ task packages{
         println "created all packages"
     }
 }
-
+def GE=org.redline_rpm.header.Flags.GREATER|org.redline_rpm.header.Flags.EQUAL
 def emptyBase=new File(project.buildDir,"empty")
 ospackage {
     //release='3'
@@ -254,11 +254,11 @@ ospackage {
     packageGroup='misc'
     packageName='avnav-ocharts-plugin'
     requires('xvfb')
-    requires('avnav')
+    requires('avnav','20210106',GE)
     requires('openssl')
     requires('libarchive13')
     requires('libglu1-mesa')
-    requires('python-psutil')
+    requires('python3-psutil')
     user='root'
     into ('/usr/lib/avnav/plugins/ocharts') {
         from('s57data'){
