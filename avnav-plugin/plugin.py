@@ -307,8 +307,11 @@ class Plugin:
 
   def handleProcessOutput(self,process):
     buffer=process.stdout.readline()
-    while buffer is not None and buffer != "":
-      self.api.log("PROVIDEROUT: %s",buffer)
+    while buffer is not None and buffer != b"":
+      try:
+        self.api.log("PROVIDEROUT: %s",buffer.decode('utf-8'))
+      except:
+        pass
       buffer=process.stdout.readline()
 
   def startProvider(self):
