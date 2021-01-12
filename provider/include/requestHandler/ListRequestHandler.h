@@ -86,7 +86,7 @@ public:
        ChartSetMap *map=manager->GetChartSets();
        ChartSetMap::iterator it;
        for (it=map->begin();it!=map->end();it++){
-           if (!it->second->IsActive() || ! it->second->IsReady()) continue;
+           if (!it->second->IsActive() || ! it->second->IsReady() || it->second->DisabledByErrors()) continue;
            ChartSetInfo info=it->second->info;
            wxString title=info.title;
            if (info.version != wxEmptyString && info.version.Find('-') != wxNOT_FOUND){

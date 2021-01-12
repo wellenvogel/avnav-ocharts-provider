@@ -50,7 +50,7 @@ ChartSet::ChartSet(ChartSetInfo info, SettingsManager *manager,bool canDelete){
         this->dataDir=wxEmptyString;
         this->settings=manager;
         this->scales = new ZoomLevelScales(settings->GetBaseScale());
-        this->numErrors=0;
+        this->openErrors=0;
         this->canDelete=canDelete;
         AddItem("info",&(this->info));
         AddItem("charts",charts);
@@ -147,7 +147,6 @@ void ChartSet::AddCandidate(ChartCandidate candidate){
     numCandidates++;
 }
 void ChartSet::AddError(wxString fileName){
-    numErrors++;
     openErrors++;
 }
 
@@ -235,24 +234,28 @@ ChartSet::RequestList ChartSet::GetLastRequests(){
     return finalRt;
 }
 
-bool ChartSet::AllowOpenRetry(){
-    return openErrors < MAX_ERRORS_RETRY;
+bool ChartSet::DisabledByErrors(){
+    return openErrors >= MAX_ERRORS_RETRY;
 }
 
 wxString ChartSet::LocalJson(){
-    wxString status="INIT";
-    switch(state){
-        case STATE_PARSING:
-            status="PARSING";
-            break;
-        case STATE_READY:
-            status="READY";
-            break;
-        case STATE_DELETED:
-            status="DELETED";
-            break;    
-        default:
-            break;
+    wxString status = "INIT";
+    if (DisabledByErrors()) {
+        status = "ERROR";
+    } else {
+        switch (state) {
+            case STATE_PARSING:
+                status = "PARSING";
+                break;
+            case STATE_READY:
+                status = "READY";
+                break;
+            case STATE_DELETED:
+                status = "DELETED";
+                break;
+            default:
+                break;
+        }
     }
     return wxString::Format(
             JSON_IV(numCandidates,%d) ",\n"
@@ -267,7 +270,7 @@ wxString ChartSet::LocalJson(){
             status, 
             PF_BOOL(active),
             PF_BOOL(IsReady()),
-            numErrors,
+            openErrors,
             disabledBy,
             PF_BOOL(canDelete),
             numValidCharts

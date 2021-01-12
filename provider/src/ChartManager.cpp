@@ -192,25 +192,33 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
         set->AddCandidate(candidate);
         return true;
     }
+    if (! set->IsParsing()){
+        LOG_INFO(wxT("skip reading chart %s as set is already complete"),chartFile.GetFullPath());
+        return false;
+    }
     ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath());
     int rt = 0;
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory before chart global=%dkb,local=%dkb"),globalKb,ourKb);
-    if ((rt = info->Init(set->AllowOpenRetry())) == PI_INIT_OK) {
-        info->Close();
-        set->AddChart(info);
-        set->ResetOpenErrors();
-        SystemHelper::GetMemInfo(&globalKb, &ourKb);
-        LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);        
-        return true;
-    } else {
+    if (!set->DisabledByErrors()) {
+        if ((rt = info->Init(true)) == PI_INIT_OK) {
+            info->Close();
+            set->AddChart(info);
+            set->ResetOpenErrors();
+            SystemHelper::GetMemInfo(&globalKb, &ourKb);
+            LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);
+            return true;
+        }
         LOG_ERROR(_T("loading chart failed wit code %d"), rt); 
-        set->AddChart(info);
-        set->AddError(chartFile.GetFullPath());
-        LOG_ERROR(_T("unable to load chart with retry"));
-        return false;
     }
+    else{
+        LOG_ERROR(_T("loading chart failed due to too many errors in set"));         
+    }
+    set->AddChart(info);
+    set->AddError(chartFile.GetFullPath());
+    return false;
+    
 }
 
 int ChartManager::HandleCharts(wxArrayString& dirsAndFiles,bool prepareOnly, bool canDelete ){
@@ -452,9 +460,6 @@ int ChartManager::ReadCharts(wxArrayString& dirsAndFiles,int memKb){
     this->memKb=memKb;
     LOG_INFOC(wxT("ChartManager: ReadCharts"));
     ChartSetMap::iterator it;
-    for (it=chartSets.begin();it != chartSets.end();it++){
-        if (it->second->IsEnabled())it->second->StartParsing();
-    }
     uint rt=HandleCharts(dirsAndFiles,false);
     LOG_INFOC(wxT("ChartManager: ReadCharts returned %d"),rt);
     for (it=chartSets.begin();it != chartSets.end();it++){
@@ -668,6 +673,7 @@ bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
     for (it=chartSets.begin();it != chartSets.end();it++){
         ChartSet *set=it->second;
         if (!set->IsEnabled()) continue;
+        if (set->DisabledByErrors()) continue; //if the set has errors we always will reparse
         LOG_DEBUG("writing chart info cache entry for set %s",set->GetKey());
         config->SetPath(wxT("/")+set->GetKey());
         config->Write("token",set->GetSetToken());
@@ -696,10 +702,11 @@ bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
 }
 bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
     LOG_INFO(wxT("reading chart info cache"));
+    bool rt=false;
     this->memKb=memKb;
     if (config == NULL){
         LOG_ERROR(wxT("chart cache file not open in read chart info cache"));
-        return false;
+        return true;
     }
     ChartSetMap::iterator it;
     //we read in 2 rounds
@@ -710,12 +717,15 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
         for (it = chartSets.begin(); it != chartSets.end(); it++) {
             ChartSet *set = it->second;
             if (!set->IsEnabled()) continue;
+            if (round >= 1  && set->IsParsing()) continue; //no need to try this again
             ChartSet::CandidateList::iterator cit;
             ChartSet::CandidateList charts = set->GetCandidates();
             config->SetPath(wxT("/")+set->GetKey());
             if (! config->HasEntry("token")){
                 LOG_ERROR("missing entry token for chart set %s in chart info cache",set->GetKey());
-                return false;
+                set->StartParsing();
+                rt=true;
+                continue;
             }
             wxString cacheToken;
             cacheToken=config->Read("token","");
@@ -724,7 +734,9 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
                         set->GetKey(),
                         cacheToken,set->GetSetToken()
                         );
-                return false;
+                set->StartParsing();
+                rt=true;
+                continue;
             }
             for (cit = charts.begin(); cit != charts.end(); cit++) {
                 ChartSet::ChartCandidate candidate = (*cit);
@@ -738,30 +750,42 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
                 config->SetPath(GetCacheFileName(candidate.fileName));
                 if (! config->HasEntry("valid")){
                     LOG_ERROR("missing valid entry for %s in chart info cache", candidate.fileName);
-                    return false;
+                    set->StartParsing();
+                    rt=true;
+                    break;
                 }
                 bool valid=false;
                 config->Read("valid",&valid);
                 if (valid) {
                     if (!config->HasEntry("scale")) {
                         LOG_ERROR("missing scale entry for %s in chart info cache", candidate.fileName);
-                        return false;
+                        set->StartParsing();
+                        rt=true;
+                        break;                     
                     }
                     if (!config->HasEntry("slat")) {
                         LOG_ERROR("missing slat entry for %s in chart info cache", candidate.fileName);
-                        return false;
+                        set->StartParsing();
+                        rt=true;
+                        break;                        
                     }
                     if (!config->HasEntry("wlon")) {
                         LOG_ERROR("missing wlon entry for %s in chart info cache", candidate.fileName);
-                        return false;
+                        set->StartParsing();
+                        rt=true;
+                        break;                    
                     }
                     if (!config->HasEntry("nlat")) {
                         LOG_ERROR("missing nlat entry for %s in chart info cache", candidate.fileName);
-                        return false;
+                        set->StartParsing();
+                        rt=true;
+                        break; 
                     }
                     if (!config->HasEntry("elon")) {
                         LOG_ERROR("missing elon entry for %s in chart info cache", candidate.fileName);
-                        return false;
+                        set->StartParsing();
+                        rt=true;
+                        break;
                     }
                 }
                 if (round != 1) continue;
@@ -778,18 +802,24 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
                     numRead++;
                 }
                 else {
+                    LOG_ERROR(wxT("adding invalid chart entry %s to set %s"),candidate.fileName,set->GetKey());
                     set->AddError(candidate.fileName);
                 }
                 set->AddChart(info);
             }
         }
     }
+    int numParsing=0;
     for (it=chartSets.begin();it != chartSets.end();it++){
+        if (it->second->IsParsing()){
+            numParsing++;
+            continue;
+        }
         it->second->SetZoomLevels();
         if (it->second->IsEnabled()) it->second->SetReady();
     }
-    state=STATE_READY;
-    LOG_INFO(wxString::Format("read %d chart info cache entries",numRead));
-    return true;
+    if (! rt) state=STATE_READY;
+    LOG_INFO(wxString::Format("read %d chart info cache entries, %d sets still need parsing",numRead,numParsing));
+    return rt;
 }
 

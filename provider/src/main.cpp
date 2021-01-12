@@ -642,18 +642,31 @@ private:
             memoryLimit=chartCacheKb;
         }
         bool mustReadCharts=true;
+        bool mustReadAllCharts=false;
         //TODO: handle fast start
         if (useChartCache){
             LOG_INFO(wxT("fast start: using chart info cache"));
             wxFileConfig *readCache=OpenChartInfoCache(privateDataDir,true);
             if (readCache == NULL){
+                mustReadAllCharts=true;
                 LOG_ERROR(wxT("no chart info cache found"));
             }
             else{
-                mustReadCharts=!chartManager->ReadChartInfoCache(readCache,memoryLimit);
+                mustReadCharts=chartManager->ReadChartInfoCache(readCache,memoryLimit);
                 if (mustReadCharts){
                     LOG_INFO(wxT("chart info cache not complete, must parse charts anyway"));
                 }
+            }
+        }
+        else{
+            mustReadAllCharts=true;
+        }
+        if (mustReadAllCharts){
+            //start parsing all sets
+            chartSets=chartManager->GetChartSets();
+            ChartSetMap::iterator it;
+            for (it=chartSets->begin();it != chartSets->end();it++){
+                if (it->second->IsEnabled())it->second->StartParsing();
             }
         }
 
@@ -666,10 +679,9 @@ private:
                 chartlist.Add(uploadChartList.Item(i));
             }
             numCharts = chartManager->ReadCharts(chartlist, memoryLimit);
-            if (numCharts < 1) {
-                LOG_INFOC(_T("no charts loaded"));
-            }
-            LOG_INFO(wxT("loaded %d charts"), numCharts);
+            LOG_INFO(wxT("loaded %d charts"), chartManager->GetNumCharts());
+        }
+        if (useChartCache){
             wxFileConfig *cache = OpenChartInfoCache(privateDataDir, false);
             chartManager->WriteChartInfoCache(cache);
             delete cache;

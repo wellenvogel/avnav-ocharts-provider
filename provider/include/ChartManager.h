@@ -157,9 +157,10 @@ public:
     /**
      * read extension an native scale from the cache file
      * is used as a replacement for ReadCharts on fast start
+     * it will set all needed sets to parsing state
      * @param config
      * @param memKb - set the memory limit
-     * @return 
+     * @return true if at least one set needs parsing
      */
     bool                ReadChartInfoCache(wxFileConfig *config, int memKb);
 private:

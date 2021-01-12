@@ -133,6 +133,14 @@ void CacheFiller::SleepPaused() {
  * @param currentSet
  */
 void CacheFiller::RenderPrefill(ChartSet *currentSet) {
+    if (!currentSet->IsEnabled()){
+        LOG_INFO(wxT("CachePrefill: skip set %s, not enabled"),currentSet->GetKey());
+        return;
+    }
+    if (currentSet->DisabledByErrors()){
+        LOG_INFO(wxT("CachePrefill: skip set %s, disabled by loading errors"),currentSet->GetKey());
+        return;
+    }
     CacheHandler *handler=currentSet->cache;
     {
         Synchronized locker(statusLock);

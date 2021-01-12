@@ -86,6 +86,7 @@ public:
     void                AddCandidate(ChartCandidate candidate);
     void                AddError(wxString fileName);
     void                StartParsing(){state=STATE_PARSING;}
+    bool                IsParsing(){return state == STATE_PARSING;}
     void                SetZoomLevels();
     void                SetReady();
     void                Stop();
@@ -100,7 +101,7 @@ public:
     virtual wxString    LocalJson() override;
     double              GetMppForZoom(int zoom);
     void                ResetOpenErrors(){openErrors=0;}
-    bool                AllowOpenRetry();
+    bool                DisabledByErrors();
     CandidateList       GetCandidates(){ return candidates;}
     void                AddChart(ChartInfo *info);
     int                 GetMinZoom(){return charts->GetMinZoom();}
@@ -130,10 +131,9 @@ private:
     ZoomLevelScales    *scales;
     std::mutex          settingsLock;
     bool                active;
-    int                 numErrors;
     bool                canDelete;
     wxString            disabledBy;
-    int                 openErrors; //consecutive openErrors, disable retry when limit reached
+    int                 openErrors; //consecutive openErrors, disable set when limit reached
     CandidateList       candidates;
     int                 numValidCharts;   
 };
