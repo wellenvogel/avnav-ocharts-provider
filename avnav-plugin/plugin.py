@@ -48,21 +48,60 @@ class Plugin:
   STARTSCRIPT="provider.sh"
   ENV_NAME="AVNAV_PROVIDER"
   CONFIG_FILE="avnav.conf"
-  CONFIG=[
+  EDITABLE_CONFIG=[
+    {
+      'name':'port',
+      'description':'the listener port for the chart provider executable',
+      'default':'8082',
+      'type': 'NUMBER'
+    },
+    {
+      'name':'threads',
+      'description':'number of provider threads',
+      'default':5,
+      'type':'NUMBER'
+    },
+    {
+      'name':'debug',
+      'description':'debuglevel for provider',
+      'default':1,
+      'type':'NUMBER'
+    },
+    {
+      'name':'cacheSize',
+      'description':'number of tiles in cache',
+      'default': 10000,
+      'type':'NUMBER'
+    },
+    {
+      'name': 'diskCacheSize',
+      'description': 'number of tiles in cache on disk per set',
+      'default': 400000,
+      'type':'NUMBER'
+    },
+    {
+      'name': 'prefillZoom',
+      'description': 'max zoom level for cache prefill',
+      'default': 17,
+      'type':'NUMBER',
+    },
+    {
+      'name': 'memPercent',
+      'description':'percent of existing mem to be used',
+      'default':''
+    }
+  ]
+  BASE_CONFIG=[
         {
           'name':'enabled',
           'description':'set to true to enable plugin',
           'default':'true'
         },
         {
-          'name':'port',
-          'description':'the listener port for the chart provider executable',
-          'default':'8082'
-        },
-        {
           'name': 'internalPlugin',
           'description': 'use the plugin installed below our own root dir',
-          'default':'true'
+          'default':True,
+          'type': 'BOOLEAN'
         },
         {
           'name':'configdir',
@@ -85,16 +124,6 @@ class Plugin:
           'default':''
         },
         {
-          'name':'threads',
-          'description':'number of provider threads',
-          'default':"5"
-        },
-        {
-          'name':'debug',
-          'description':'debuglevel for provider',
-          'default':'1'
-        },
-        {
           'name':'chartdir',
           'description':'location for additional charts',
           'default': ''
@@ -110,27 +139,6 @@ class Plugin:
           'default':"2"
         },
         {
-          'name':'cacheSize',
-          'description':'number of tiles in cache',
-          'default': '10000'
-        },
-        {
-          'name': 'diskCacheSize',
-          'description': 'number of tiles in cache on disk per set',
-          'default': '400000'
-        },
-        {
-          'name': 'prefillZoom',
-          'description': 'max zoom level for cache prefill',
-          'default': '17'
-        },
-        {
-          'name': 'memPercent',
-          'description':'percent of existing mem to be used',
-          'default':''
-
-        },
-        {
           'name': 'supervision',
           'description': 'a , separated list of namePattern:memMb to be supervised',
           'default': 'xvfb:150'
@@ -142,6 +150,7 @@ class Plugin:
           'default': '30'
         }
       ]
+  CONFIG=EDITABLE_CONFIG+BASE_CONFIG
 
   @classmethod
   def pluginInfo(cls):
@@ -176,6 +185,13 @@ class Plugin:
     self.baseUrl=None #will be set in run
     self.connected=False
     self.chartList=[]
+    self.changeSequence=0
+    self.stopSequence=0
+    self.providerPid=-1
+    if hasattr(self.api,'registerEditableParameters'):
+      self.api.registerEditableParameters(self.EDITABLE_CONFIG,self.updateConfig)
+    if hasattr(self.api,'registerRestart'):
+      self.api.registerRestart(self.stop)
 
 
   def findProcessByPattern(self,exe, checkuser=False,wildcard=False):
@@ -291,14 +307,19 @@ class Plugin:
         continue
       if not os.path.isdir(chart):
         raise Exception("chart dir %s not found"%chart)
-    cmdline = ["/bin/sh",exe, '-t',self.config['threads'],'-d',self.config['debug'], '-s',self.config['scale'], '-l' , logname, '-p', str(os.getpid()),
-               "-c",self.config['cacheSize'],
-               "-f",self.config['diskCacheSize'],
-               "-r",self.config['prefillZoom'],
+    cmdline = ["/bin/sh",exe,
+               '-t',str(self.config['threads']),
+               '-d',str(self.config['debug']),
+               '-s',str(self.config['scale']),
+               '-l' , logname,
+               '-p', str(os.getpid()),
+               "-c",str(self.config['cacheSize']),
+               "-f",str(self.config['diskCacheSize']),
+               "-r",str(self.config['prefillZoom']),
                "-e", self.config['exeDir'],
                "-n"]
     if self.config['memPercent'] != '':
-      cmdline= cmdline + ["-x",self.config['memPercent']]
+      cmdline= cmdline + ["-x",str(self.config['memPercent'])]
     if self.config['uploadDir'] != '':
       cmdline= cmdline + ["-u",self.config['uploadDir']]
     cmdline=cmdline + [ocpndir,
@@ -400,9 +421,43 @@ class Plugin:
         self.api.debug("error handling supervision for process %d: %s",candidate[0],traceback.format_exc())
     return True
 
+  def updateConfig(self,newConfig):
+    self.api.saveConfigValues(newConfig)
+    self.changeSequence+=1
 
+  def stop(self):
+    self.changeSequence+=1
+    self.stopSequence+=1
 
   def run(self):
+    sequence=self.stopSequence
+    while self.stopSequence == sequence:
+      try:
+        self.runInternal()
+        self.stopProvider()
+      except Exception as e:
+        self.api.setStatus('ERROR',str(e))
+        self.stopProvider()
+        raise
+
+  def stopProvider(self):
+    backgroundList=self.filterProcessList(self.findProcessByPattern(None),True)
+    for bp in backgroundList:
+      pid=bp[0]
+      self.api.log("killing background process %d",pid)
+      os.kill(pid,signal.SIGKILL)
+    try:
+      provider=psutil.Process(self.providerPid)
+      provider.wait(0)
+    except:
+      self.api.debug("error waiting for dead children: %s", traceback.format_exc())
+
+  def getBooleanCfg(self,name,default):
+    v=self.api.getConfigValue(name,default)
+    if type(v) is str:
+      return v.lower() == 'true'
+    return v
+  def runInternal(self):
     """
     the run method
     this will be called after successfully instantiating an instance
@@ -411,8 +466,9 @@ class Plugin:
     and writes them to the store every 10 records
     @return:
     """
-    enabled = self.api.getConfigValue('enabled','true')
-    if enabled.lower() != 'true':
+    sequence=self.changeSequence
+    enabled = self.getBooleanCfg('enabled',True)
+    if not enabled:
       self.api.setStatus("INACTIVE","module not enabled in server config")
       self.api.error("module disabled")
       return
@@ -420,21 +476,17 @@ class Plugin:
     for cfg in self.CONFIG:
       v=self.api.getConfigValue(cfg['name'],cfg['default'])
       if v is None:
-        self.api.error("missing config value %s"%cfg['name'])
-        self.api.setStatus("INACTIVE", "missing config value %s"%cfg['name'])
-        return
+        raise Exception("missing config value %s"%cfg['name'])
       self.config[cfg['name']]=v
 
     for name in list(self.config.keys()):
       if type(self.config[name]) == str or type(self.config[name]) == unicode:
         self.config[name]=self.config[name].replace("$DATADIR",self.api.getDataDir())
         self.config[name] = self.config[name].replace("$PLUGINDIR", os.path.dirname(__file__))
-    useInternalPlugin=self.config['internalPlugin']
-    if useInternalPlugin == '':
-      useInternalPlugin='true'
+    useInternalPlugin=self.getBooleanCfg('internalPlugin',True)
     rootBase="/usr"
     baseDir=rootBase
-    if useInternalPlugin.lower() == 'true':
+    if useInternalPlugin:
       baseDir=os.path.dirname(__file__)
       if not os.path.exists(os.path.join(baseDir,"lib","opencpn")) and os.path.exists(os.path.join(rootBase,"lib","opencpn")):
         self.api.error("internal plugin is set but path does not exist, using external")
@@ -444,17 +496,13 @@ class Plugin:
         self.config[mdir] = os.path.join(baseDir,self.MANDATORY_DIRS[mdir])
       dir=self.config[mdir]
       if not os.path.isdir(dir):
-        self.api.error("mandatory directory %s (path: %s) not found"%(mdir,dir))
-        self.api.setStatus("ERROR","mandatory directory %s (path: %s) not found"%(mdir,dir))
-        return
+        raise Exception("mandatory directory %s (path: %s) not found"%(mdir,dir))
     configdir=self.config['configdir']
     if not os.path.isdir(configdir):
       self.api.log("configdir %s does not (yet) exist"%configdir)
       os.makedirs(configdir)
     if not os.path.isdir(configdir):
-      self.api.error("unable to create config dir %s"%configdir)
-      self.api.setStatus("ERROR","unable to create config dir %s"%configdir)
-      return
+      raise Exception("unable to create config dir %s"%configdir)
     cfgfile=os.path.join(configdir,self.CONFIG_FILE)
     if not os.path.exists(cfgfile):
       try:
@@ -468,20 +516,14 @@ class Plugin:
             f.write("")
             f.close()
       except Exception as e:
-        self.api.error("unable to create config file %s",cfgfile)
-        self.api.setStatus("ERROR","unable to create config file %s"%cfgfile)
-        return
+        raise Exception("unable to create config file %s"%cfgfile)
     port=None
     try:
       port=int(self.config['port'])
     except:
-      self.api.error("exception while reading port from config %s",traceback.format_exc())
-      self.api.setStatus("ERROR","invalid value for port %s"%self.config['port'])
-      return
+      raise Exception("invalid value for port %s"%self.config['port'])
     if not self.handleSupervision(True):
-      self.api.error("invalid supervision config: %s", self.config.get('supervision'))
-      self.api.setStatus("ERROR", "invalid supervision config: %s", self.config.get('supervision'))
-      return
+      raise Exception("invalid supervision config: %s", self.config.get('supervision'))
     supervisionPeriod=30
     try:
       supervisionPeriod=int(self.config['supervisionPeriod'])
@@ -490,7 +532,7 @@ class Plugin:
     processes=self.findProcessByPattern(self.EXENAME)
     own=self.filterProcessList(processes,True)
     alreadyRunning=False
-    providerPid=-1
+    self.providerPid=-1
     if len(processes) > 0:
       if len(own) != len(processes):
         diff=filter(lambda e: not e in own,processes)
@@ -500,28 +542,26 @@ class Plugin:
         #TODO: handle more then one process
         self.api.log("we already see a provider running with pid %d, trying this one"%filtered[0][0])
         alreadyRunning=True
-        providerPid=own[0][0]
+        self.providerPid=own[0][0]
     if not alreadyRunning:
       self.api.log("starting provider process")
       self.api.setStatus("STARTING","starting provider process %s"%self.STARTSCRIPT)
       try:
         process=self.startProvider()
-        providerPid=process.pid
+        self.providerPid=process.pid
         time.sleep(5)
       except Exception as e:
-        self.api.error("unable to start provider: %s",traceback.format_exc())
-        self.api.setStatus("ERROR","unable to start provider %s"%e)
-        return
+        raise Exception("unable to start provider %s"%e)
     self.api.log("started with port %d"%port)
     self.baseUrl="http://localhost:%d/list"%port
     self.api.registerChartProvider(self.listCharts)
     self.api.registerUserApp("http://$HOST:%d/static/index.html"%port,"gui/icon.png")
     reported=False
     errorReported=False
-    self.api.setStatus("STARTED", "provider started with pid %d, connecting at %s" %(providerPid,self.baseUrl))
+    self.api.setStatus("STARTED", "provider started with pid %d, connecting at %s" %(self.providerPid,self.baseUrl))
     ready=False
     lastSupervision=0
-    while True:
+    while sequence == self.changeSequence:
       responseData=None
       try:
         response=urlopen(self.baseUrl,timeout=10)
@@ -543,32 +583,23 @@ class Plugin:
         self.connected=False
         filteredList=self.filterProcessList(self.findProcessByPattern(self.EXENAME),True)
         if len(filteredList) < 1:
-          if self.isPidRunning(providerPid):
+          if self.isPidRunning(self.providerPid):
             self.api.debug("final executable not found, but started process is running, wait")
           else:
             self.api.setStatus("STARTED", "restarting provider")
             self.api.log("no running provider found, trying to start")
             #just see if we need to kill some old child...
-            backgroundList=self.filterProcessList(self.findProcessByPattern(None),True)
-            for bp in backgroundList:
-              pid=bp[0]
-              self.api.log("killing background process %d",pid)
-              os.kill(pid,signal.SIGKILL)
-            try:
-              provider=psutil.Process(providerPid)
-              provider.wait(0)
-            except:
-              self.api.debug("error waiting for dead children: %s", traceback.format_exc())
+            self.stopProvider()
             try:
               process=self.startProvider()
-              providerPid=process.pid
+              self.providerPid=process.pid
               self.api.setStatus("STARTED", "provider restarted with pid %d, trying to connect at %s"%(providerPid,self.baseUrl))
             except Exception as e:
               self.api.error("unable to start provider: %s"%traceback.format_exc())
               self.api.setStatus("ERROR", "unable to start provider %s"%e)
         else:
-          providerPid=filteredList[0][0]
-          self.api.setStatus("STARTED","provider started with pid %d, trying to connect at %s" % (providerPid, self.baseUrl))
+          self.providerPid=filteredList[0][0]
+          self.api.setStatus("STARTED","provider started with pid %d, trying to connect at %s" % (self.providerPid, self.baseUrl))
         if reported:
           if not errorReported:
             self.api.error("lost connection at %s"%self.baseUrl)
@@ -581,7 +612,7 @@ class Plugin:
       self.connected=True
       if not reported:
         self.api.log("got first provider response")
-        self.api.setStatus("NMEA","provider (%d) sucessfully connected at %s"%(providerPid,self.baseUrl))
+        self.api.setStatus("NMEA","provider (%d) sucessfully connected at %s"%(self.providerPid,self.baseUrl))
         reported=True
       time.sleep(1)
 
