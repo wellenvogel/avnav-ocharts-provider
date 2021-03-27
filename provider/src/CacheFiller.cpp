@@ -105,7 +105,7 @@ wxString CacheFiller::ToJson(){
     return rt;
     }
 
-#define MAX_PAUSED (60*5)
+#define MAX_PAUSED (60*15)
 void CacheFiller::SleepPaused() {
     if (! paused) return;
     bool notified=false;
