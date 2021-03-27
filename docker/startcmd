@@ -1,4 +1,4 @@
 #! /bin/sh
 PDIR=`dirname $0`
 PDIR=`readlink -f $PDIR/../..`
-docker run --cap-add=SYS_PTRACE -ti -v $PDIR:/src --name opencpn-build --privileged -p 8090:8082 opencpn-build:ubuntu-bionic-dev /bin/bash
+docker run --cap-add=SYS_PTRACE -ti -v $PDIR:/src --name opencpn-build --privileged -p 8090:8082 opencpn-build:ubuntu-bionic /bin/bash
