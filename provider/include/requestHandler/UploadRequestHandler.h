@@ -117,7 +117,7 @@ public:
 
 #define UPLOAD_TEMP_DIR wxT("__tmp")
 class UploadRequestHandler : public RequestHandler {
-    const unsigned long MAXUPLOAD=1024*1024*1024; //1GB
+    const unsigned long long MAXUPLOAD=3LL*1024LL*1024LL*1024LL; //3GB
 public:
     const wxString  URL_PREFIX=wxT("/upload");
     const wxString  TMP_PREFIX=wxT("CSUPLOAD");
@@ -274,7 +274,7 @@ public:
         if (url.StartsWith(wxT("uploadzip"))){
             wxString lenPar;
             GET_HEADER(lenPar,"content-length");            
-            unsigned long uploadSize = std::atol(lenPar.ToAscii().data());
+            unsigned long long uploadSize = std::atoll(lenPar.ToAscii().data());
             if (uploadSize > MAXUPLOAD){
                 return new HTTPJsonErrorResponse(wxString::Format(
                         wxT("upload to big, allowed: %ld"),MAXUPLOAD));                
@@ -290,7 +290,7 @@ public:
                        wxString::Format(wxT("unable to open tmp file %s"),outName.GetFullPath()));                                
             }
             LOG_INFO(wxT("uploading chart zip %s"),outName.GetFullPath());
-            unsigned long receivedBytes=WriteFromInput(request,&outFile,uploadSize);
+            unsigned long long receivedBytes=WriteFromInput(request,&outFile,uploadSize);
             if (receivedBytes != uploadSize){
                 outFile.Close();
                 wxRemoveFile(outName.GetFullPath());

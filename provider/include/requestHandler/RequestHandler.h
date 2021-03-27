@@ -188,8 +188,8 @@ public:
         }
         return rt;
     }
-    unsigned long WriteFromInput(HTTPRequest *request,wxFile *openOutput,
-        unsigned long len,
+    unsigned long long WriteFromInput(HTTPRequest *request,wxFile *openOutput,
+        unsigned long long len,
         long chunkTimeout=20000); //app. 500Bytes/s
 protected:
     HTTPResponse    *EnqueueAndWait(MainQueue *queue,

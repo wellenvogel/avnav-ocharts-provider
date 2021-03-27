@@ -304,13 +304,13 @@ void Worker::SendData(int socket,HTTPResponse *response,HTTPRequest *request){
 }
 
 #define BUFSIZE 10000
-unsigned long RequestHandler::WriteFromInput(HTTPRequest *request,wxFile *openOutput, unsigned long len,long chunkTimeOut) {
-    unsigned long bRead=0;
+unsigned long long RequestHandler::WriteFromInput(HTTPRequest *request,wxFile *openOutput, unsigned long long len,long chunkTimeOut) {
+    unsigned long long bRead=0;
     char buffer[BUFSIZE];
     while (bRead < len){        
-        unsigned long rdLen=(len-bRead);
+        unsigned long long rdLen=(len-bRead);
         if (rdLen > BUFSIZE) rdLen=BUFSIZE;
-        int rd=SocketHelper::Read(request->socket,buffer,rdLen,chunkTimeOut);
+        int rd=SocketHelper::Read(request->socket,buffer,(int)rdLen,chunkTimeOut);
         if (rd <=0){
             LOG_DEBUG(wxT("unable to read %ld bytes from stream"),len);
             return 0;
