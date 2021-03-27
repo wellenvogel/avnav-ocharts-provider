@@ -593,7 +593,7 @@ class Plugin:
             try:
               process=self.startProvider()
               self.providerPid=process.pid
-              self.api.setStatus("STARTED", "provider restarted with pid %d, trying to connect at %s"%(providerPid,self.baseUrl))
+              self.api.setStatus("STARTED", "provider restarted with pid %d, trying to connect at %s"%(self.providerPid,self.baseUrl))
             except Exception as e:
               self.api.error("unable to start provider: %s"%traceback.format_exc())
               self.api.setStatus("ERROR", "unable to start provider %s"%e)
