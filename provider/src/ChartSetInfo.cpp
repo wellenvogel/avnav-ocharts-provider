@@ -126,7 +126,10 @@ ChartSetInfo ChartSetInfo::ParseChartInfo(wxString chartSetDirectory){
     if (parsedInfo.eulaMode != SHOW_NEVER && parsedInfo.eulaFiles.size() <1){
         LOG_ERROR(wxT("eula required for %s but no eula files"),chartSetDirectory);
         parsedInfo.eulaMode =SHOW_NEVER;
-    }    
+    }
+    if (parsedInfo.title == wxEmptyString || parsedInfo.title.IsEmpty()){
+        parsedInfo.title=parsedInfo.name;
+    }
     LOG_INFO(wxT("%s"),parsedInfo.ToString());
     return parsedInfo;
 }
