@@ -333,10 +333,11 @@ private:
     
     class FPRFileProviderImpl : public FPRFileProvider{
         const wxString server=wxT("oeserverd");
+        const wxString server2=wxT("oexserverd");
     private:
-        wxString GetExePath(){
+        wxString GetExePath(wxString fn){
             wxFileName fn_exe=wxFileName::FileName(GetOCPN_ExePath());
-            wxFileName daemon(fn_exe.GetPath(),server);
+            wxFileName daemon(fn_exe.GetPath(),fn);
             return daemon.GetFullPath();
         }
     public:
@@ -352,11 +353,14 @@ private:
            
             wxString fpr_file;
             wxString fpr_dir = *GetpPrivateApplicationDataLocation(); //GetWritableDocumentsDir();
-            wxString cmd=GetExePath();
+            wxString cmd=GetExePath(server);
             if (!wxFileExists(cmd)){
-                rt.hasError=true;
-                rt.error=wxString::Format(wxT("server %s not found"),cmd);
-                return rt;
+                cmd=GetExePath(server2);
+                    if (!wxFileExists(cmd)){
+                    rt.hasError=true;
+                    rt.error=wxString::Format(wxT("server %s or %s not found"),server,server2);
+                    return rt;
+                }
             }
             if( fpr_dir.Last() != wxFileName::GetPathSeparator() )
                 fpr_dir += wxFileName::GetPathSeparator();
@@ -539,6 +543,9 @@ private:
         config->SetPath( _T("/PlugIns/oesenc") );
         LOG_INFO(wxT("setting plugin debug to %d"),debuglevel);
         config->Write( _T("DEBUG_LEVEL"),debuglevel);
+        config->SetPath( _T("/PlugIns/ocharts") );
+        LOG_INFO(wxT("setting plugin debug to %d"),debuglevel);
+        config->Write( _T("DEBUG_LEVEL"),debuglevel);
         if (!config->Flush()){
             LOG_ERRORC(wxT("unable to write to config"));
             exit(1);
@@ -561,6 +568,7 @@ private:
         manager = new PlugInManager();
         FPRFileProviderImpl fprProvider;
         manager->LoadAllPlugIns(pluginDir,wxT("*oesenc"));
+        manager->LoadAllPlugIns(pluginDir,wxT("*o-charts"));
         ArrayOfPlugIns *pplugin_array = manager->GetPlugInArray();
         statusCollector.AddItem("plugins",new PluginInfo(pplugin_array));
         const char* outdir = NULL;
@@ -579,8 +587,12 @@ private:
                         LOG_INFO(_T("     class: %s"), clnames.Item(j));
                         wxObject *chartObject = ::wxCreateDynamicObject(clnames.Item(j));
                         PlugInChartBase *wr=wxDynamicCast(chartObject, PlugInChartBase);
-                        LOG_INFO(_T("     wrapper: SearchMask=%s"), wr->GetFileSearchMask());
+                        if (wr == NULL){
+                            LOG_ERROR(_T("   invalid chartTyp - unable to cast: %s"),clnames.Item(j));
+                            continue;
+                        }
                         wxString extMask=wr->GetFileSearchMask().Upper();
+                        LOG_INFO(_T("     wrapper: SearchMask=%s"), extMask);
                         ExtensionList::iterator it=extensions.find(extMask);
                         if (it == extensions.end()){
                             LOG_INFO(wxT("ignoring file search mask %s from plugin %s as we don't know it"),
