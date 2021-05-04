@@ -89,6 +89,7 @@ public:
     bool AddValue(wxString s);
     bool AddFileInfo(wxString path,wxString base=wxEmptyString);
     bool IsOk() const;
+    bool IsFinalized() const{ return finalized;}
     const unsigned char * GetValue();
     MD5Name GetValueCopy();
     wxString GetHex();

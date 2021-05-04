@@ -136,6 +136,7 @@ void ChartSet::UpdateSettings(bool removeCacheFile){
     cacheToken.AddValue(info.userKey);
     cacheToken.AddFileInfo(wxT("Chartinfo.txt"),info.dirname);
     settings->AddSettingsToMD5(&cacheToken);
+    LOG_INFO(_T("starting cache with token %s"),cacheToken.GetHex());
     rdwr=new CacheReaderWriter(GetCacheFileName(),cacheToken.GetHex(),cache,maxDiskCacheEntries);
     rdwr->start();
     AddItem("cacheWriter",rdwr);
@@ -296,6 +297,7 @@ WeightedChartList  ChartSet::FindChartForTile(int minZoom,int maxZoom,LatLon &no
     return charts->FindChartForTile(minZoom,maxZoom,northwest,southeast,goUp);
 }
 wxString ChartSet::GetSetToken(){
-    return setToken.GetHex();
+    MD5 token=setToken;
+    return token.GetHex();
 }
 

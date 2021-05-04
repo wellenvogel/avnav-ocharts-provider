@@ -178,6 +178,14 @@ bool SettingsManager::AddSettingsToMD5(MD5* md5){
         LOG_ERROR(wxT("SettingsManager: unable to reopen config file %s"),configFile);
         return false;
     }
+    if (!md5->IsOk()){
+        LOG_ERROR(wxT("SettingsManager: AddSettings md5 not open"));
+        return false;
+    }
+    if (md5->IsFinalized()){
+        LOG_ERROR(wxT("SettingsManager: AddSettings md5 already closed"));
+        return false;
+    }
     wxFileConfig localConfig(is);
     UserSettingsList::iterator it;
     wxString lastPath=wxEmptyString;
