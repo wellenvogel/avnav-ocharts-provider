@@ -64,7 +64,7 @@ public:
     wxString                ToString();
     virtual wxString        ToJson();
     
-    static ChartSetInfo     ParseChartInfo(wxString chartDir);
+    static ChartSetInfo     ParseChartInfo(wxString chartDir,bool writeEmpty=false);
     /**
      * some workaround to inform the plugin that we already had all EULAs seen
      * @param config

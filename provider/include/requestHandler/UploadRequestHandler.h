@@ -139,14 +139,9 @@ private:
     
     class ZipChartInfo{
     public:
-        typedef enum {
-            NONE,
-            TXT,
-            XML        
-        } infoType;
-        wxFileName  chartInfo;
+        typedef std::vector<wxFileName> FileNameList;
+        FileNameList  chartInfo;
         wxString    error=wxEmptyString;
-        infoType    found=NONE;
     };
     
     ZipChartInfo ReadChartInfo(wxString archive){
@@ -167,16 +162,10 @@ private:
         while ((entry=zip.GetNextEntry()) != NULL){
             wxFileName entryFile=wxFileName::FileName(entry->GetName());
             if (entryFile.GetFullName() == CHARTINFO_TXT){
-                rt.chartInfo=entryFile;
-                rt.found=ZipChartInfo::TXT;
-                delete entry;
-                return rt;
+                rt.chartInfo.push_back(entryFile);
             }
             if (entry->GetName().EndsWith(".XML") || entry->GetName().EndsWith(".xml") ){
-                rt.chartInfo=entryFile;
-                rt.found=ZipChartInfo::XML;
-                delete entry;
-                return rt;
+                rt.chartInfo.push_back(entryFile);
             }
             delete entry;
         }
@@ -321,18 +310,26 @@ public:
                             info.error                        
                         ));                                
             }
-            if (info.found == ZipChartInfo::NONE){
+            if (info.chartInfo.size() < 1){
                 wxRemoveFile(outName.GetFullPath());
                 manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse("no Chartinfo.txt or XXX.XML in archive");                                
             }
-            LOG_INFO(wxT("found chart info %s"),info.chartInfo.GetFullPath());
-            if (info.chartInfo.GetDirCount() != 1){
-                wxRemoveFile(outName.GetFullPath());
-                manager->PauseFiller(false);
-                return new HTTPJsonErrorResponse("Chartinfo must be inside one subdirectory");                                
-            }
-            wxString chartDir=info.chartInfo.GetPath();
+            LOG_INFO(wxT("found chart %d info entries"),info.chartInfo.size());
+            wxString chartDir=info.chartInfo[0].GetPath();
+            ZipChartInfo::FileNameList::iterator fit;
+            for (fit=info.chartInfo.begin();fit!= info.chartInfo.end();fit++){
+                if (fit->GetDirCount() != 1){
+                    wxRemoveFile(outName.GetFullPath());
+                    manager->PauseFiller(false);
+                    return new HTTPJsonErrorResponse("Chartinfo must be inside one subdirectory");                                
+                }
+                if (fit->GetPath() != chartDir){
+                    wxRemoveFile(outName.GetFullPath());
+                    manager->PauseFiller(false);
+                    return new HTTPJsonErrorResponse("Chartinfos in different sub directories");                                
+                }
+            }         
             wxFileName outDir(uploadDir,chartDir);
             if (outDir.Exists()){
                 wxRemoveFile(outName.GetFullPath());
@@ -393,16 +390,31 @@ public:
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp dir %s"),tempDir.GetFullPath()));
             }
             ChartSetInfo setInfo;
-            if (info.found == ZipChartInfo::TXT) {
-                //create a temp chart info without eulas
-                setInfo = ChartSetInfo::ParseChartInfo(outDir.GetFullPath());
-                if (!setInfo.infoParsed) {
-                    wxFileName::Rmdir(tempDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
-                    wxFileName::Rmdir(outDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
-                    manager->PauseFiller(false);
-                    return new HTTPJsonErrorResponse(wxT("unable to parse chartinfo"));
+            bool hasChartInfo=false;
+            //copy all xml files and a modified Chartinfo,txt to the temp dir
+            for (fit=info.chartInfo.begin();fit != info.chartInfo.end();fit++){
+                wxFileName infoName=*fit;
+                if (infoName.GetFullName() == CHARTINFO_TXT){
+                   setInfo = ChartSetInfo::ParseChartInfo(outDir.GetFullPath());
+                    if (!setInfo.infoParsed) {
+                        wxFileName::Rmdir(tempDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
+                        wxFileName::Rmdir(outDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
+                        manager->PauseFiller(false);
+                        return new HTTPJsonErrorResponse(wxT("unable to parse chartinfo")); 
+                    }
+                    hasChartInfo=true;
                 }
-            }    
+                else{
+                    wxFileName tempFile(tempDir.GetFullPath(),infoName.GetFullName());
+                    wxString copyError=CopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+infoName.GetFullName(),tempFile.GetFullPath());
+                    if (copyError != wxEmptyString){
+                        wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                        wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
+                        manager->PauseFiller(false);
+                        return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy %s to temp dir %s: %s"),infoName.GetName(),copyError));                
+                    }
+                }
+            }           
             wxFileName chartInfoName(tempDir.GetFullPath(), CHARTINFO_TXT);
             wxFile newChartInfo(chartInfoName.GetFullPath(), wxFile::write);
             if (!newChartInfo.IsOpened()) {
@@ -411,21 +423,15 @@ public:
                 manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp chartInfo %s"), chartInfoName.GetFullPath()));
             }
-            if (info.found == ZipChartInfo::TXT){
+            if (setInfo.infoParsed){
                 newChartInfo.Write(wxString::Format(wxT("UserKey:%s\n"), setInfo.userKey));
             }
-            newChartInfo.Close();
-            if (info.found == ZipChartInfo::XML){
-                //copy the chartinfo
-                wxFileName tempFile(tempDir.GetFullPath(),info.chartInfo.GetFullName());
-                wxString copyError=CopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+info.chartInfo.GetFullName(),tempFile.GetFullPath());
-                if (copyError != wxEmptyString){
-                    wxFileName::Rmdir(tempDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
-                    wxFileName::Rmdir(outDir.GetFullPath(),wxPATH_RMDIR_FULL|wxPATH_RMDIR_RECURSIVE);
-                    manager->PauseFiller(false);
-                    return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to copy %s to temp dir %s: %s"),info.chartInfo.GetName(),copyError));                
-                }
+            else{
+                //TODO: we should let the plugin create a chartinfo
+                //but this will currently not work until the handle our no dialogs feature
+                newChartInfo.Write("Empty\n");
             }
+            newChartInfo.Close();
             //copy the chart to the temp dir
             wxFileName tempFile(tempDir.GetFullPath(),chartFileName);
             wxString copyError=CopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+chartFileName,tempFile.GetFullPath());
@@ -459,7 +465,7 @@ public:
                 manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse(wxT("The system cannot open charts from this chart set. Maybe wrong key. ChartSet deleted"));
             }
-            if (info.found == ZipChartInfo::XML){
+            if (! hasChartInfo){
                 //after a chart has been opened, the new plugin should have created a Chartinfo.txt
                 //copy this to our chart dir
                 wxFileName target(outDir.GetFullPath(),CHARTINFO_TXT);

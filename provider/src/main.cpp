@@ -567,8 +567,14 @@ private:
         webServer.AddHandler(new UploadRequestHandler(chartManager,&mainQueue,uploadDir));
         manager = new PlugInManager();
         FPRFileProviderImpl fprProvider;
-        manager->LoadAllPlugIns(pluginDir,wxT("*oesenc"));
         manager->LoadAllPlugIns(pluginDir,wxT("*o-charts"));
+        if (manager->GetPlugInArray()->Count() > 0){
+            LOG_INFO("loaded the new o-charts plugin, do not try legacy");
+        }
+        else{
+            LOG_INFO("trying to load the legacy plugin");
+            manager->LoadAllPlugIns(pluginDir,wxT("*oesenc"));
+        }
         ArrayOfPlugIns *pplugin_array = manager->GetPlugInArray();
         statusCollector.AddItem("plugins",new PluginInfo(pplugin_array));
         const char* outdir = NULL;

@@ -115,7 +115,7 @@ ChartSet *ChartManager::findOrCreateChartSet(wxFileName chartFile,bool mustExist
             LOG_ERROR(wxT("no chart info created for file %s"),chartFile.GetFullPath());
             return NULL;
         }
-        ChartSetInfo info=ChartSetInfo::ParseChartInfo(chartDir);
+        ChartSetInfo info=ChartSetInfo::ParseChartInfo(chartDir,true);
         if (! info.infoParsed){
             LOG_INFO(wxT("unable to retrieve chart set info for %s, trying anyway with defaults"),chartDir);
         }

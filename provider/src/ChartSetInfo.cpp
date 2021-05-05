@@ -42,7 +42,7 @@ wxString ChartSetInfo::KeyFromChartDir(wxString chartDir){
     chartDirName.MakeAbsolute();
     return StringHelper::SanitizeString(wxT("CS")+chartDirName.GetPath());
 }
-ChartSetInfo ChartSetInfo::ParseChartInfo(wxString chartSetDirectory){
+ChartSetInfo ChartSetInfo::ParseChartInfo(wxString chartSetDirectory,bool writeEmpty){
     LOG_DEBUG(wxT("parse chart info for %s"),chartSetDirectory);
     ChartSetInfo parsedInfo;
     parsedInfo.dirname=chartSetDirectory;
@@ -56,6 +56,12 @@ ChartSetInfo ChartSetInfo::ParseChartInfo(wxString chartSetDirectory){
     wxFileName infoFileName(chartDir.GetLongPath(),wxT("Chartinfo.txt"));
     if (! infoFileName.FileExists()){
         LOG_ERROR(wxT("no chart info file %s found"),infoFileName.GetFullPath());
+        if (writeEmpty){
+            LOG_INFO("writing empty chart info %s",infoFileName.GetFullPath());
+            wxFile infoFile(infoFileName.GetFullPath(),wxFile::write);
+            infoFile.Write(wxString("Empty\n"));
+            infoFile.Close();
+        }
         return parsedInfo;
     }
     parsedInfo.mtime=infoFileName.GetModificationTime().GetTicks();
@@ -64,12 +70,12 @@ ChartSetInfo ChartSetInfo::ParseChartInfo(wxString chartSetDirectory){
         wxString line = infoFile.GetFirstLine();
         while( !infoFile.Eof() ){
             //oesencEULAFile:EN_rrc_eula_ChartSetsForOpenCPN.html
-            if(line.StartsWith( _T("oesencEULAFile:" ) ) ) {
+            if(line.StartsWith( _T("oesencEULAFile:" ) ) || line.StartsWith( _T("ochartsEULAFile:" ) ) ) {
                 wxString eulaFile = line.AfterFirst(':').Trim(false);
                 parsedInfo.eulaFiles.push_back(eulaFile);
             }
             //oesencEULAShow:once
-            else if(line.StartsWith( _T("oesencEULAShow:" ) ) ) {
+            else if(line.StartsWith( _T("oesencEULAShow:" ) ) || line.StartsWith( _T("ochartsEULAShow:" ) ) ) {
                 wxString eulaMode = line.AfterFirst(':').Trim(false).Trim();
                 if (eulaMode.Upper().Find((wxT("ONCE"))) != wxNOT_FOUND) 
                     parsedInfo.eulaMode=SHOW_ONCE;
@@ -139,31 +145,35 @@ bool ChartSetInfo::WriteEulasToConfig(wxFileConfig* config, ChartSetInfoList* in
     ChartSetInfoList::iterator it;
     //see saveConfig in oesenc_pi.cpp
     //and processChartInfo
-    config->DeleteGroup(_T ( "/PlugIns/oesenc/EULA"));
-    config->SetPath ( _T ( "/PlugIns/oesenc/EULA" ) );
-    int i=0;
-    for (it=infos->begin();it != infos->end();it++){
-        wxString val("never");
-        val.Append(";1;"); //always shown
-        std::vector<wxString>::iterator fi;
-        wxString baseName=it->dirname+wxFileName::GetPathSeparator();
-        baseName.Replace(wxFileName::GetPathSeparator(),'!');
-        for (fi=it->eulaFiles.begin();fi != it->eulaFiles.end();fi++){
-            wxString fileName=baseName+(*fi);
-            fileName.Replace(wxFileName::GetPathSeparator(),'!');
-            wxString key=wxString::Format(wxT("EULA_%02d"),i);
-            wxString cfgValue=val+fileName;
-            LOG_DEBUG(wxT("Write EULA entry %s=%s"),key,cfgValue);
-            config->Write(key,cfgValue);
+    StringVector eulaPathes{"/PlugIns/oesenc/EULA","/PlugIns/ocharts/EULA"};
+    StringVector::iterator pathIt;
+    for (pathIt = eulaPathes.begin(); pathIt != eulaPathes.end(); pathIt++) {
+        config->DeleteGroup(*pathIt);
+        config->SetPath(*pathIt);
+        int i = 0;
+        for (it = infos->begin(); it != infos->end(); it++) {
+            wxString val("never");
+            val.Append(";1;"); //always shown
+            std::vector<wxString>::iterator fi;
+            wxString baseName = it->dirname + wxFileName::GetPathSeparator();
+            baseName.Replace(wxFileName::GetPathSeparator(), '!');
+            for (fi = it->eulaFiles.begin(); fi != it->eulaFiles.end(); fi++) {
+                wxString fileName = baseName + (*fi);
+                fileName.Replace(wxFileName::GetPathSeparator(), '!');
+                wxString key = wxString::Format(wxT("EULA_%02d"), i);
+                wxString cfgValue = val + fileName;
+                LOG_DEBUG(wxT("Write EULA entry %s=%s"), key, cfgValue);
+                config->Write(key, cfgValue);
+                i++;
+            }
+            //write an empty entry - potentially a file has not been found
+            wxString key = wxString::Format(wxT("EULA_%02d"), i);
+            wxString cfgValue = val + baseName;
+            LOG_DEBUG(wxT("Write EULA entry %s=%s"), key, cfgValue);
+            config->Write(key, cfgValue);
             i++;
+
         }
-        //write an empty entry - potentially a file has not been found
-        wxString key=wxString::Format(wxT("EULA_%02d"),i);
-        wxString cfgValue=val+baseName;
-        LOG_DEBUG(wxT("Write EULA entry %s=%s"),key,cfgValue);
-        config->Write(key,cfgValue);
-        i++;
-        
     }
     config->Flush();
     return true;
