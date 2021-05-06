@@ -539,6 +539,7 @@ private:
         }
         ChartSetInfo::WriteEulasToConfig(config,&infos);
         int debuglevel=0;
+        if (Logger::instance()->HasLevel(LOG_LEVEL_INFO)) debuglevel=4;
         if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)) debuglevel=10;
         config->SetPath( _T("/PlugIns/oesenc") );
         LOG_INFO(wxT("setting plugin debug to %d"),debuglevel);

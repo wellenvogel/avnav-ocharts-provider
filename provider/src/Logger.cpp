@@ -87,7 +87,7 @@ void Logger::RenameFile(){
         wxRenameFile(filename,filename+wxT(".")+now.Format("%Y-%m-%d-%H-%M-%S")); 
     }
 }
-#define MAX_KEEP 8
+#define MAX_KEEP 20
 void Logger::HouseKeeping() {
     wxFileName logFileName=wxFileName::FileName(filename);
     logFileName.MakeAbsolute();
