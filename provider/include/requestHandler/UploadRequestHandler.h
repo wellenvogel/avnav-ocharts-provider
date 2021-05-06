@@ -35,6 +35,9 @@
 #include <wx/zipstrm.h>
 #include "StringHelper.h"
 
+//if the PR for the plugin is accepted we could set this
+#define HAS_TOLERANT_PLUGIN false
+
 class ScanMessage : public MainMessage{
 public:
     ChartManager    *manager;
@@ -416,22 +419,21 @@ public:
                 }
             }           
             wxFileName chartInfoName(tempDir.GetFullPath(), CHARTINFO_TXT);
-            wxFile newChartInfo(chartInfoName.GetFullPath(), wxFile::write);
-            if (!newChartInfo.IsOpened()) {
-                wxFileName::Rmdir(tempDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
-                wxFileName::Rmdir(outDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
-                manager->PauseFiller(false);
-                return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp chartInfo %s"), chartInfoName.GetFullPath()));
+            if (hasChartInfo || !HAS_TOLERANT_PLUGIN) {
+                wxFile newChartInfo(chartInfoName.GetFullPath(), wxFile::write);
+                if (!newChartInfo.IsOpened()) {
+                    wxFileName::Rmdir(tempDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
+                    wxFileName::Rmdir(outDir.GetFullPath(), wxPATH_RMDIR_FULL | wxPATH_RMDIR_RECURSIVE);
+                    manager->PauseFiller(false);
+                    return new HTTPJsonErrorResponse(wxString::Format(wxT("unable to create temp chartInfo %s"), chartInfoName.GetFullPath()));
+                }
+                if (setInfo.infoParsed) {
+                    newChartInfo.Write(wxString::Format(wxT("UserKey:%s\n"), setInfo.userKey));
+                } else {
+                    newChartInfo.Write("Empty\n");
+                }
+                newChartInfo.Close();
             }
-            if (setInfo.infoParsed){
-                newChartInfo.Write(wxString::Format(wxT("UserKey:%s\n"), setInfo.userKey));
-            }
-            else{
-                //TODO: we should let the plugin create a chartinfo
-                //but this will currently not work until the handle our no dialogs feature
-                newChartInfo.Write("Empty\n");
-            }
-            newChartInfo.Close();
             //copy the chart to the temp dir
             wxFileName tempFile(tempDir.GetFullPath(),chartFileName);
             wxString copyError=CopyFile(outDir.GetFullPath()+wxFileName::GetPathSeparator()+chartFileName,tempFile.GetFullPath());
