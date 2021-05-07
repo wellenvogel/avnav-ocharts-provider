@@ -275,7 +275,7 @@ void Renderer::DoRenderTile(RenderMessage *msg){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=chart->GetNativeScale();
         manager->OpenChart(chart); //ensure the chart to be open
-        chart->Render(renderDc,vpoint,region);
+        chart->Render(renderDc,vpoint,region,tile.zoom);
     }
     wxImage result=renderBitmap.ConvertToImage();
     msg->StoreResult(result,true);

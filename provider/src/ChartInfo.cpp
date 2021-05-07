@@ -77,6 +77,7 @@ ChartInfo::ChartInfo(wxString className,wxString fileName) {
     this->chart=NULL;
     this->filename=fileName;
     this->isValid=false;
+    this->fullyInitialized=false;
 }
 
 ChartInfo::~ChartInfo() {
@@ -102,6 +103,7 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
             waitpid(-1,NULL,WNOHANG);
             rt = this->chart->Init(filename,fullInit?PI_FULL_INIT:PI_HEADER_ONLY);
             if (rt == PI_INIT_OK){
+                this->fullyInitialized=fullInit;
                 LOG_INFO(_T("opening succeeded on retry for %s"),filename);
                 return true;
             }
@@ -109,6 +111,7 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
         }
         return false;
     }
+    this->fullyInitialized=fullInit;
     return true;
 }
 
@@ -123,24 +126,27 @@ long ChartInfo::GetLastRender(){
 bool ChartInfo::Close(){
     if (chart == NULL) return true;
     LOG_INFO(wxT("closing chart %s"),filename);
-    //try to render a 1x1 region as it seems it does not free the bitmaps...
-    PlugIn_ViewPort vpoint;
-    vpoint.pix_width=1;
-    vpoint.pix_height=1;
-    vpoint.rotation=0.0;
-    vpoint.skew=0.0;
-    vpoint.m_projection_type=PI_PROJECTION_MERCATOR;
-    vpoint.clat=0;
-    vpoint.clon=0;
-    vpoint.lat_min=0;
-    vpoint.lat_max=0;
-    vpoint.lon_min=0;
-    vpoint.lon_max=0;
-    vpoint.bValid=true;
-    vpoint.b_quilt=false;
-    vpoint.view_scale_ppm=1;
-    wxRegion region(0,0,1,1);
-    chart->RenderRegionView(vpoint,region);
+    if (fullyInitialized) {
+        //try to render a 1x1 region as it seems it does not free the bitmaps...
+        PlugIn_ViewPort vpoint;
+        vpoint.pix_width = 1;
+        vpoint.pix_height = 1;
+        vpoint.rotation = 0.0;
+        vpoint.skew = 0.0;
+        vpoint.m_projection_type = PI_PROJECTION_MERCATOR;
+        vpoint.clat = 0;
+        vpoint.clon = 0;
+        vpoint.lat_min = 0;
+        vpoint.lat_max = 0;
+        vpoint.lon_min = 0;
+        vpoint.lon_max = 0;
+        vpoint.bValid = true;
+        vpoint.b_quilt = false;
+        vpoint.view_scale_ppm = 1;
+        wxRegion region(0, 0, 1, 1);
+        chart->RenderRegionView(vpoint, region);
+    }
+    fullyInitialized=false;
     delete chart;
     chart=NULL;
     return true;
@@ -220,25 +226,81 @@ TileBox ChartInfo::GetTileBounds(){
     return rt;
 }
 
-bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region){
+bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom){
     if (chart == NULL){
         if (!Reopen(true,false)) return false;
     }
     lastRender=wxGetLocalTime();
     wxBitmap bitmap;
-    bitmap=chart->RenderRegionView(VPoint,Region);
+    int bltx,blty,w,h;
+    Region.GetBox(bltx,blty,w,h);
+    if (classname == wxString("Chart_oeuRNC")){
+        //compute restricted region for raster charts
+        //still somehow experimental
+        PlugIn_ViewPort cpvp(VPoint);
+        int x=0;
+        int y=0;
+        int xmax=TILE_SIZE;
+        int ymax=TILE_SIZE;
+        bool mustRecomputeRegion=false;
+        if (cpvp.lat_min < extent.SLAT) {
+            cpvp.lat_min=extent.SLAT;
+            mustRecomputeRegion=true;
+            ymax=TileHelper::lat2tileyOffset(cpvp.lat_min,zoom);
+        }
+        if (cpvp.lat_max > extent.NLAT){
+            cpvp.lat_max=extent.NLAT;
+            mustRecomputeRegion=true;
+            y=TileHelper::lat2tileyOffset(cpvp.lat_max,zoom);
+        }
+        if (cpvp.lon_min < extent.WLON) {
+            cpvp.lon_min=extent.WLON;
+            x=TileHelper::lon2tilexOffset(cpvp.lon_min,zoom);
+            mustRecomputeRegion=true;
+        }
+        if (cpvp.lon_max > extent.ELON) {
+            cpvp.lon_max=extent.ELON;
+            mustRecomputeRegion=true;
+            xmax=TileHelper::lon2tilexOffset(cpvp.lon_max,zoom);
+        }
+        if (mustRecomputeRegion){
+            //if (xmax <= x ) xmax=TILE_SIZE;
+            //if (ymax <= y) ymax=TILE_SIZE;
+            wxRegion cpRegion(
+                x,
+                y,
+                xmax-x,
+                ymax-y    
+                );
+            bitmap=chart->RenderRegionView(cpvp,cpRegion);
+            cpRegion.GetBox(bltx,blty,w,h);
+        }
+        else{
+            bitmap=chart->RenderRegionView(VPoint,Region);
+        }
+    }
+    else{
+        bitmap=chart->RenderRegionView(VPoint,Region);
+    }
     wxColour nodat;
     GetGlobalColor( _T ( "NODTA" ),&nodat );
     wxMask *mask= new wxMask(bitmap,nodat);
     bitmap.SetMask(mask);
     wxMemoryDC tempDC(bitmap);
-    out.Blit(0,0,TILE_SIZE,TILE_SIZE,&tempDC,0,0,wxCOPY,true);
+    out.Blit(bltx,blty,w,h,&tempDC,bltx,blty,wxCOPY,true);
     return true;
 }
 
 ObjectList ChartInfo::FeatureInfo(PlugIn_ViewPort& VPoint,
             float lat, float lon, float tolerance){
     ObjectList rt;
+    if (classname == wxString("Chart_oeuRNC")){
+        //if we do not handle this here
+        //the dynamic cast below will succeed
+        //but the chart is corrupted afterwards
+        LOG_DEBUG(wxT("FeatureInfo: chart %s is no extended chart"),GetFileName());
+        return rt;
+    }
     if (chart == NULL){
         if (!Reopen(true,false)) return rt;
     }
@@ -248,6 +310,10 @@ ObjectList ChartInfo::FeatureInfo(PlugIn_ViewPort& VPoint,
         return rt;
     }
     ListOfPI_S57Obj *objList= pluginChart->GetObjRuleListAtLatLon(lat,lon,tolerance,&VPoint);
+    if (objList == NULL){
+        LOG_DEBUG(wxT("FeatureInfo(leave empty): chart %s"),GetFileName());
+        return rt;
+    }
     ListOfPI_S57Obj::iterator it;
     for (it=objList->begin();it!=objList->end();it++){
         PI_S57Obj *obj=*it;

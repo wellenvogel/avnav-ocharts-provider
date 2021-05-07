@@ -114,6 +114,18 @@ public:
         double latrad = lat * PI / 180.0;
         return (int) (floor((1.0 - asinh(tan(latrad)) / PI) / 2.0 * (1 << z)));
     }
+    static int lat2tileyOffset(double lat, int z){
+        double latrad = lat * PI / 180.0;
+        double base=(1.0 - asinh(tan(latrad)) / PI) / 2.0 * (1 << z);
+        float diff=floor((base-floor(base))*(float)TILE_SIZE);
+        int rt=(int)diff;
+        return rt;
+    }
+    static int lon2tilexOffset(double lon,int z){
+        double base=(lon + 180.0) / 360.0 * (1 << z);
+        float diff=floor((base-floor(base))*TILE_SIZE);
+        return (int)diff;
+    }
 
     static double tilex2long(int x, int z) {
         return x / (double) (1 << z) * 360.0 - 180;

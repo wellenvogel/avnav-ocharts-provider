@@ -144,6 +144,7 @@ private:
     int             nativeScale;
     wxMutex         renderLock;
     bool            isValid;
+    bool            fullyInitialized;
          
 public:
     ChartInfo(wxString className,wxString fileName);
@@ -162,7 +163,7 @@ public:
      */
     int         HasTile(LatLon &northwest,LatLon &southeast);
     bool        UpdateBoundings(/*inout*/BoundingBox *box);
-    bool        Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region);
+    bool        Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom);
     ObjectList  FeatureInfo(PlugIn_ViewPort& VPoint, float lat, float lon, float tolerance);
     void        GetTileBounds(/*out*/int &xmin,int &xmax,int &ymin,int &ymax);
     TileBox     GetTileBounds();

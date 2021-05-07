@@ -203,7 +203,7 @@ private:
     long maxLogLines=50000;
     long maxPrefillZoom=17;
     bool useChartCache=false;
-    ExtensionList extensions={{"*.OESENC",{}},{"*.OESU",{}}};
+    ExtensionList extensions={{"*.OESENC",{}},{"*.OESU",{}},{"*.OERNC",{}}};
     ChartManager *chartManager;
     wxString privateDataDir=wxT("~/.opencpn/");
     wxString dataDir=privateDataDir;
