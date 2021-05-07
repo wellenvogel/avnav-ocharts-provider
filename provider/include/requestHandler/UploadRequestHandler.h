@@ -36,7 +36,7 @@
 #include "StringHelper.h"
 
 //if the PR for the plugin is accepted we could set this
-#define HAS_TOLERANT_PLUGIN false
+#define HAS_TOLERANT_PLUGIN true
 
 class ScanMessage : public MainMessage{
 public:
@@ -143,8 +143,9 @@ private:
     class ZipChartInfo{
     public:
         typedef std::vector<wxFileName> FileNameList;
-        FileNameList  chartInfo;
-        wxString    error=wxEmptyString;
+        FileNameList    chartInfo;
+        wxString        error=wxEmptyString;
+        bool            anyConfig=false;
     };
     
     ZipChartInfo ReadChartInfo(wxString archive){
@@ -166,8 +167,13 @@ private:
             wxFileName entryFile=wxFileName::FileName(entry->GetName());
             if (entryFile.GetFullName() == CHARTINFO_TXT){
                 rt.chartInfo.push_back(entryFile);
+                rt.anyConfig=true;
             }
             if (entry->GetName().EndsWith(".XML") || entry->GetName().EndsWith(".xml") ){
+                rt.chartInfo.push_back(entryFile);
+                rt.anyConfig=true;
+            }
+            if (entry->GetName().EndsWith(".HTML") || entry->GetName().EndsWith(".html") ){
                 rt.chartInfo.push_back(entryFile);
             }
             delete entry;
@@ -313,7 +319,7 @@ public:
                             info.error                        
                         ));                                
             }
-            if (info.chartInfo.size() < 1){
+            if (info.chartInfo.size() < 1 || ! info.anyConfig){
                 wxRemoveFile(outName.GetFullPath());
                 manager->PauseFiller(false);
                 return new HTTPJsonErrorResponse("no Chartinfo.txt or XXX.XML in archive");                                
