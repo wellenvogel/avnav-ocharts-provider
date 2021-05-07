@@ -42,7 +42,7 @@ class ChartList;
 class UpdateReceiverImpl;
 class ChartSet : public StatusCollector{
 public:
-    const int MAX_ERRORS_RETRY=3; //stop retrying after that many errors
+    const int MAX_ERRORS_RETRY=10; //stop retrying after that many errors
     typedef enum{
         STATE_INIT,
         STATE_PARSING,
