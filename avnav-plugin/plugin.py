@@ -188,6 +188,7 @@ class Plugin:
     self.changeSequence=0
     self.stopSequence=0
     self.providerPid=-1
+    self.remoteHost=None
     if hasattr(self.api,'registerEditableParameters'):
       self.api.registerEditableParameters(self.EDITABLE_CONFIG,self.updateConfig)
     if hasattr(self.api,'registerRestart'):
@@ -356,6 +357,8 @@ class Plugin:
   def listCharts(self,hostip):
     self.api.debug("listCharts %s"%hostip)
     iconUrl=None
+    if self.remoteHost is not None:
+      hostip=self.remoteHost
     try:
       iconUrl=self.api.getBaseUrl()+"/gui/icon.png"
     except:
@@ -478,84 +481,96 @@ class Plugin:
       if v is None:
         raise Exception("missing config value %s"%cfg['name'])
       self.config[cfg['name']]=v
-
-    for name in list(self.config.keys()):
-      if type(self.config[name]) == str or type(self.config[name]) == unicode:
-        self.config[name]=self.config[name].replace("$DATADIR",self.api.getDataDir())
-        self.config[name] = self.config[name].replace("$PLUGINDIR", os.path.dirname(__file__))
-    useInternalPlugin=self.getBooleanCfg('internalPlugin',True)
-    rootBase="/usr"
-    baseDir=rootBase
-    if useInternalPlugin:
-      baseDir=os.path.dirname(__file__)
-      if not os.path.exists(os.path.join(baseDir,"lib","opencpn")) and os.path.exists(os.path.join(rootBase,"lib","opencpn")):
-        self.api.error("internal plugin is set but path does not exist, using external")
-        baseDir=rootBase
-    for mdir in list(self.MANDATORY_DIRS.keys()):
-      if self.config[mdir]  == '':
-        self.config[mdir] = os.path.join(baseDir,self.MANDATORY_DIRS[mdir])
-      dir=self.config[mdir]
-      if not os.path.isdir(dir):
-        raise Exception("mandatory directory %s (path: %s) not found"%(mdir,dir))
-    configdir=self.config['configdir']
-    if not os.path.isdir(configdir):
-      self.api.log("configdir %s does not (yet) exist"%configdir)
-      os.makedirs(configdir)
-    if not os.path.isdir(configdir):
-      raise Exception("unable to create config dir %s"%configdir)
-    cfgfile=os.path.join(configdir,self.CONFIG_FILE)
-    if not os.path.exists(cfgfile):
-      try:
-        src=os.path.join(os.path.dirname(__file__),self.CONFIG_FILE)
-        if os.path.exists(src):
-          self.api.log("config file %s does not exist, creating initial from %s"%(cfgfile,src))
-          shutil.copyfile(src,cfgfile)
-        else:
-          self.api.log("config file %s does not exist, creating empty",src)
-          with open(cfgfile,"") as f:
-            f.write("")
-            f.close()
-      except Exception as e:
-        raise Exception("unable to create config file %s"%cfgfile)
+    remoteHost=self.api.getConfigValue('host','')
+    remote= remoteHost is not None and remoteHost != ''
+    if remote:
+      self.remoteHost=remoteHost
+    else:
+      self.remoteHost=None
     port=None
     try:
       port=int(self.config['port'])
     except:
       raise Exception("invalid value for port %s"%self.config['port'])
-    if not self.handleSupervision(True):
-      raise Exception("invalid supervision config: %s", self.config.get('supervision'))
-    supervisionPeriod=30
-    try:
-      supervisionPeriod=int(self.config['supervisionPeriod'])
-    except:
-      pass
-    processes=self.findProcessByPattern(self.EXENAME)
-    own=self.filterProcessList(processes,True)
-    alreadyRunning=False
-    self.providerPid=-1
-    if len(processes) > 0:
-      if len(own) != len(processes):
-        diff=filter(lambda e: not e in own,processes)
-        diffstr=map(lambda e: unicode(e),diff)
-        self.api.log("there are provider processes running from other users: %s",",".join(diffstr))
-      if len(own) > 0:
-        #TODO: handle more then one process
-        self.api.log("we already see a provider running with pid %d, trying this one"%filtered[0][0])
-        alreadyRunning=True
-        self.providerPid=own[0][0]
-    if not alreadyRunning:
-      self.api.log("starting provider process")
-      self.api.setStatus("STARTING","starting provider process %s"%self.STARTSCRIPT)
+    if not remote:
+      for name in list(self.config.keys()):
+        if type(self.config[name]) == str or type(self.config[name]) == unicode:
+          self.config[name]=self.config[name].replace("$DATADIR",self.api.getDataDir())
+          self.config[name] = self.config[name].replace("$PLUGINDIR", os.path.dirname(__file__))
+      useInternalPlugin=self.getBooleanCfg('internalPlugin',True)
+      rootBase="/usr"
+      baseDir=rootBase
+      if useInternalPlugin:
+        baseDir=os.path.dirname(__file__)
+        if not os.path.exists(os.path.join(baseDir,"lib","opencpn")) and os.path.exists(os.path.join(rootBase,"lib","opencpn")):
+          self.api.error("internal plugin is set but path does not exist, using external")
+          baseDir=rootBase
+      for mdir in list(self.MANDATORY_DIRS.keys()):
+        if self.config[mdir]  == '':
+          self.config[mdir] = os.path.join(baseDir,self.MANDATORY_DIRS[mdir])
+        dir=self.config[mdir]
+        if not os.path.isdir(dir):
+          raise Exception("mandatory directory %s (path: %s) not found"%(mdir,dir))
+      configdir=self.config['configdir']
+      if not os.path.isdir(configdir):
+        self.api.log("configdir %s does not (yet) exist"%configdir)
+        os.makedirs(configdir)
+      if not os.path.isdir(configdir):
+        raise Exception("unable to create config dir %s"%configdir)
+      cfgfile=os.path.join(configdir,self.CONFIG_FILE)
+      if not os.path.exists(cfgfile):
+        try:
+          src=os.path.join(os.path.dirname(__file__),self.CONFIG_FILE)
+          if os.path.exists(src):
+            self.api.log("config file %s does not exist, creating initial from %s"%(cfgfile,src))
+            shutil.copyfile(src,cfgfile)
+          else:
+            self.api.log("config file %s does not exist, creating empty",src)
+            with open(cfgfile,"") as f:
+              f.write("")
+              f.close()
+        except Exception as e:
+          raise Exception("unable to create config file %s"%cfgfile)
+      if not self.handleSupervision(True):
+        raise Exception("invalid supervision config: %s", self.config.get('supervision'))
+      supervisionPeriod=30
       try:
-        process=self.startProvider()
-        self.providerPid=process.pid
-        time.sleep(5)
-      except Exception as e:
-        raise Exception("unable to start provider %s"%e)
-    self.api.log("started with port %d"%port)
-    self.baseUrl="http://localhost:%d/list"%port
+        supervisionPeriod=int(self.config['supervisionPeriod'])
+      except:
+        pass
+      processes=self.findProcessByPattern(self.EXENAME)
+      own=self.filterProcessList(processes,True)
+      alreadyRunning=False
+      self.providerPid=-1
+      if len(processes) > 0:
+        if len(own) != len(processes):
+          diff=filter(lambda e: not e in own,processes)
+          diffstr=map(lambda e: unicode(e),diff)
+          self.api.log("there are provider processes running from other users: %s",",".join(diffstr))
+        if len(own) > 0:
+          #TODO: handle more then one process
+          self.api.log("we already see a provider running with pid %d, trying this one"%filtered[0][0])
+          alreadyRunning=True
+          self.providerPid=own[0][0]
+      if not alreadyRunning:
+        self.api.log("starting provider process")
+        self.api.setStatus("STARTING","starting provider process %s"%self.STARTSCRIPT)
+        try:
+          process=self.startProvider()
+          self.providerPid=process.pid
+          time.sleep(5)
+        except Exception as e:
+          raise Exception("unable to start provider %s"%e)
+      self.api.log("started with port %d"%port)
+      host='localhost'
+    else:
+      host=remoteHost
+    self.baseUrl="http://%s:%d/list"%(host,port)
     self.api.registerChartProvider(self.listCharts)
-    self.api.registerUserApp("http://$HOST:%d/static/index.html"%port,"gui/icon.png")
+    if remote:
+      self.api.registerUserApp("http://%s:%d/static/index.html"%(remoteHost,port),"gui/icon.png")
+    else:
+      self.api.registerUserApp("http://$HOST:%d/static/index.html"%port,"gui/icon.png")
     reported=False
     errorReported=False
     self.api.setStatus("STARTED", "provider started with pid %d, connecting at %s" %(self.providerPid,self.baseUrl))
@@ -574,32 +589,34 @@ class Plugin:
         if status is None or status != 'OK':
           raise Exception("invalid status from provider query")
         self.chartList=responseData['items']
-        now=time.time()
-        if lastSupervision > now or (lastSupervision+supervisionPeriod) < now:
-          self.handleSupervision()
-          lastSupervision=now
+        if not remote:
+          now=time.time()
+          if lastSupervision > now or (lastSupervision+supervisionPeriod) < now:
+            self.handleSupervision()
+            lastSupervision=now
       except:
         self.api.debug("exception reading from provider %s"%traceback.format_exc())
         self.connected=False
-        filteredList=self.filterProcessList(self.findProcessByPattern(self.EXENAME),True)
-        if len(filteredList) < 1:
-          if self.isPidRunning(self.providerPid):
-            self.api.debug("final executable not found, but started process is running, wait")
+        if not remote:
+          filteredList=self.filterProcessList(self.findProcessByPattern(self.EXENAME),True)
+          if len(filteredList) < 1:
+            if self.isPidRunning(self.providerPid):
+              self.api.debug("final executable not found, but started process is running, wait")
+            else:
+              self.api.setStatus("STARTED", "restarting provider")
+              self.api.log("no running provider found, trying to start")
+              #just see if we need to kill some old child...
+              self.stopProvider()
+              try:
+                process=self.startProvider()
+                self.providerPid=process.pid
+                self.api.setStatus("STARTED", "provider restarted with pid %d, trying to connect at %s"%(self.providerPid,self.baseUrl))
+              except Exception as e:
+                self.api.error("unable to start provider: %s"%traceback.format_exc())
+                self.api.setStatus("ERROR", "unable to start provider %s"%e)
           else:
-            self.api.setStatus("STARTED", "restarting provider")
-            self.api.log("no running provider found, trying to start")
-            #just see if we need to kill some old child...
-            self.stopProvider()
-            try:
-              process=self.startProvider()
-              self.providerPid=process.pid
-              self.api.setStatus("STARTED", "provider restarted with pid %d, trying to connect at %s"%(self.providerPid,self.baseUrl))
-            except Exception as e:
-              self.api.error("unable to start provider: %s"%traceback.format_exc())
-              self.api.setStatus("ERROR", "unable to start provider %s"%e)
-        else:
-          self.providerPid=filteredList[0][0]
-          self.api.setStatus("STARTED","provider started with pid %d, trying to connect at %s" % (self.providerPid, self.baseUrl))
+            self.providerPid=filteredList[0][0]
+            self.api.setStatus("STARTED","provider started with pid %d, trying to connect at %s" % (self.providerPid, self.baseUrl))
         if reported:
           if not errorReported:
             self.api.error("lost connection at %s"%self.baseUrl)
