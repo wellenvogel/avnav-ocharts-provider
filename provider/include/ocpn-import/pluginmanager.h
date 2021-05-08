@@ -276,7 +276,10 @@ public:
     bool            bShowSoundg;
     bool            showLights;
     int             nDisplayCategory;
-    
+    bool            bShowLightDescription;
+    bool            bShowS57ImportantTextOnly;
+    bool            bShowAtonText;
+    bool            showAnchorConditions;
     
     PluginConfigBase(){
         s57BaseDir=wxEmptyString;
@@ -293,6 +296,11 @@ public:
         bShowSoundg=true;
         showLights=true;
         nDisplayCategory=83; //Standard
+        bShowLightDescription=true;
+        bShowS57ImportantTextOnly=false;
+        bShowAtonText=true;
+        showAnchorConditions=true;
+        
     }
     
 };

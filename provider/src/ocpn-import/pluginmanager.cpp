@@ -47,6 +47,7 @@
 #include "georef.h"
 #include "Logger.h"
 #include "ColorTable.h"
+#include "StringHelper.h"
 
 
 PluginConfigBase baseConfig;
@@ -913,16 +914,29 @@ void setPluginBaseConfig(PluginConfigBase cfg, bool sendJson) {
                     "\"%s ShowText\":%s,\n"
                     "\"%s ShowSoundings\":%s,\n"
                     "\"%s DisplayCategory\":%d,\n"
-                    "\"%s ShowLights\":%s\n"
+                    "\"%s ShowLights\":%s,\n"
+                    JSON_IV(%s ShowLightDescription,%s) ",\n"
+                    JSON_IV(%s ShowATONLabel,%s) ",\n"
+                    JSON_IV(%s ShowImportantTextOnly, %s) ",\n"
+                    JSON_IV(%s ShowAnchorConditions, %s) ",\n"   
+                    JSON_IV(%s SymbolStyle,%d) ",\n"
+                    JSON_IV(%s BoundaryStyle,%d) "\n"
                 "}"),
                 OCPN_MAJOR, 
                 OCPN_MINOR,
                 PRFX,cfg.bShowS57Text?"true":"false",
                 PRFX,cfg.bShowSoundg?"true":"false",
                 PRFX,cfg.nDisplayCategory,
-                PRFX,cfg.showLights?"true":"false"
+                PRFX,cfg.showLights?"true":"false",
+                PRFX,PF_BOOL(cfg.bShowLightDescription),
+                PRFX,PF_BOOL(cfg.bShowAtonText),
+                PRFX,PF_BOOL(cfg.bShowS57ImportantTextOnly),
+                PRFX,PF_BOOL(cfg.showAnchorConditions),
+                PRFX,cfg.symbolStyle,
+                PRFX,cfg.boundaryStyle
                 );
         wxString messageId(wxT("OpenCPN Config"));
+        LOG_DEBUG("sending plugin config %s",jsonMessage);
         s_ppim->SendMessageToAllPlugins(messageId,jsonMessage);
     }
 }

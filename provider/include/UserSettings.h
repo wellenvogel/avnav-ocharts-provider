@@ -1,4 +1,4 @@
-//generated from /home/andreas/projects/ocharts-provider/doc/Settings.csv at 2020-05-25T11:37:24.303897
+//generated from ./Settings.csv at 2021-05-08T19:32:12.056742
 #ifndef USERSETTINGS_H
 #define USERSETTINGS_H
 #include "UserSettingsBase.h"
@@ -27,6 +27,7 @@ new UserSettingsEntryDouble(wxT("important"),wxT("/Settings/AvNav"),wxT("scale")
 new UserSettingsEntryInt(wxT("important"),wxT("/Settings/AvNav"),wxT("underZoom"),UserSettingsEntry::TYPE_INT,1,wxT("UnderZoom"),0,4),
 new UserSettingsEntryInt(wxT("important"),wxT("/Settings/AvNav"),wxT("overZoom"),UserSettingsEntry::TYPE_INT,4,wxT("OverZoom"),1,8),
 new UserSettingsEntryBool(wxT("important"),wxT("/Settings/AvNav"),wxT("showLights"),UserSettingsEntry::TYPE_BOOL,1,wxT("Show Lights")),
+new UserSettingsEntryBool(wxT("important"),wxT("/Settings/AvNav"),wxT("showAnchorInfo"),UserSettingsEntry::TYPE_BOOL,1,wxT("Show Anchor Info")),
 new UserSettingsEntryBool(wxT("detail"),wxT("/Settings/ObjectFilter"),wxT("vizADMARE"),UserSettingsEntry::TYPE_BOOL,1,wxT("Administration area (Named)")),
 new UserSettingsEntryBool(wxT("detail"),wxT("/Settings/ObjectFilter"),wxT("vizAIRARE"),UserSettingsEntry::TYPE_BOOL,1,wxT("Airport / airfield")),
 new UserSettingsEntryBool(wxT("detail"),wxT("/Settings/ObjectFilter"),wxT("vizACHBRT"),UserSettingsEntry::TYPE_BOOL,1,wxT("Anchor berth")),

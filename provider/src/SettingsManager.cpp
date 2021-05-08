@@ -96,6 +96,10 @@ bool SettingsManager::StoreBaseSettings(bool sendJson){
     base.bShowSoundg=(getIntVal(config,GetConfigDescription(wxT("bShowSoundg")))!=0);
     base.nDisplayCategory=getIntVal(config,GetConfigDescription(wxT("nDisplayCategory")));
     base.showLights=getIntVal(config,GetConfigDescription(wxT("showLights")));
+    base.bShowAtonText=getIntVal(config,GetConfigDescription("bShowAtonText"));
+    base.bShowLightDescription=getIntVal(config,GetConfigDescription("bShowLightDescription"));
+    base.bShowS57ImportantTextOnly=getIntVal(config,GetConfigDescription("bShowS57ImportantTextOnly"));
+    base.showAnchorConditions=getIntVal(config,GetConfigDescription("showAnchorInfo"));
     base.configFile=config;
     base.settingsSequence=configSequence;
     LOG_INFO(wxT("SettingsManager: setting plugin base config"));

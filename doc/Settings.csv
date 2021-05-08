@@ -9,16 +9,16 @@ OpenCPN: CanvasOptions.cpp",default,min/ enum values,max/ enum strings,Group,"PL
 (prepare render if hash changed)",LoadS57Config (init plugin),json name,json type,json necessary
 system,/Settings,DebugS57,,,,,,,,,,,X,,,
 important,/Settings/GlobalState,bShowS57Text,bool,,Show text,1,,,Main,,,(X),X,OpenCPN S52PLIB ShowText,bool,X
-,,bShowS57ImportantTextOnly,bool,,Important Text Only,0,,,Main,X,,X,X,OpenCPN S52PLIB ShowImportantTextOnly,bool,
-,,bShowLightDescription,bool,,Light Descriptions,1,,,Main,,,X,X,OpenCPN S52PLIB ShowLightDescription,bool,
+,,bShowS57ImportantTextOnly,bool,,Important Text Only,0,,,Main,X,,X,X,OpenCPN S52PLIB ShowImportantTextOnly,bool,X
+,,bShowLightDescription,bool,,Light Descriptions,1,,,Main,,,X,X,OpenCPN S52PLIB ShowLightDescription,bool,X
 ,,bExtendLightSectors,bool,,Extended Light Sectors,1,,,Main,,,X,X,,,
 ,,nDisplayCategory,enum,"enum _DisCat, int",Display Category,79,"68,83,79,77","Base,Standard,All,User Standard",Display,,,(X),X,OpenCPN S52PLIB DisplayCategory,int,X
-,,nSymbolStyle,enum,"enum _LUPname, int",Graphics Style,82,"82,76","Paper Chart,Simplified",Display,X,,X,X,OpenCPN S52PLIB SymbolStyle,int,
-,,nBoundaryStyle,enum,"LUPname, int",Boundaries,78,"78,79","Plain,Symbolized",Display,X,,X,X,OpenCPN S52PLIB BoundaryStyle,int,
+,,nSymbolStyle,enum,"enum _LUPname, int",Graphics Style,82,"82,76","Paper Chart,Simplified",Display,X,,X,X,OpenCPN S52PLIB SymbolStyle,int,X
+,,nBoundaryStyle,enum,"LUPname, int",Boundaries,78,"78,79","Plain,Symbolized",Display,X,,X,X,OpenCPN S52PLIB BoundaryStyle,int,X
 ,,bShowSoundg,bool,,Show depths,1,,,Main,,,(X),X,OpenCPN S52PLIB ShowSoundings,bool,X
 ,,bShowMeta,bool,,Chart Information Objects,1,,,Main,X,,X,X,OpenCPN S52PLIB MetaDisplay,bool,
 ,,bUseSCAMIN,bool,,Reduced Detail at Small Scale,1,,,Display,X,,X,X,OpenCPN S52PLIB UseSCAMIN,bool,
-,,bShowAtonText,bool,,Buoy/Light Labels,1,,,Main,,,X,X,OpenCPN S52PLIB ShowATONLabel,bool,
+,,bShowAtonText,bool,,Buoy/Light Labels,1,,,Main,,,X,X,OpenCPN S52PLIB ShowATONLabel,bool,X
 ,,bDeClutterText,bool,,De-Cluttered Text,1,,,Display,X,,X,X,OpenCPN S52PLIB DeclutterText,bool,
 ,,bShowNationalText,bool,,National text on chart,1,,,Main,X,,X,X,OpenCPN S52PLIB ShowNationalText,bool,
 ,,S52_MAR_SAFETY_CONTOUR,depth,double,Safety Depth,2.0,0,100,Depth,X,,X,X,,,
@@ -32,6 +32,7 @@ important,/Settings/GlobalState,bShowS57Text,bool,,Show text,1,,,Main,,,(X),X,Op
 ,,underZoom,int,,UnderZoom,1,0,4,Display,,,,,,,
 ,,overZoom,int,,OverZoom,4,1,8,Display,,,,,,,
 ,,showLights,bool,,Show Lights,1,,,Main,,,,,OpenCPN S52PLIB ShowLights,bool,X
+,,showAnchorInfo,bool,,Show Anchor Info,1,,,Main,X,,,,OpenCPN S52PLIB ShowAnchorConditions,bool,X
 none,???,ColorScheme,,PlugInManager::SetColorSchemeForAllPlugIns,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,
