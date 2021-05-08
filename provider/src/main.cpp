@@ -118,6 +118,7 @@ static const wxCmdLineEntryDesc g_cmdLineDesc [] = {
     {wxCMD_LINE_OPTION,"e", "exe","directory for oeserverd (default: /usr/bin)", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
     {wxCMD_LINE_OPTION,"u", "uploadDir","directory for chart upload (default: configDir/charts)", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
     {wxCMD_LINE_SWITCH,"n", "noChartScan","use chart cache info if available (fast start)"},
+    {wxCMD_LINE_OPTION,"o", "openCpnConfig","parse this OpenCPN config for chart sets",wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
     
     {wxCMD_LINE_PARAM, NULL, NULL, "", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_MULTIPLE},
     { wxCMD_LINE_NONE}
@@ -208,6 +209,7 @@ private:
     wxString privateDataDir=wxT("~/.opencpn/");
     wxString dataDir=privateDataDir;
     wxString exePath=wxT("/usr/bin");
+    wxString openCPNConfig=wxEmptyString; //if set - pare this opencpn config for charts
 public:
     virtual int MainLoop() {
         //ignore sigpipes
@@ -244,6 +246,7 @@ public:
         bool hasMemSize=parser.Found("x",&memsizePercent);
         parser.Found("r",&maxPrefillZoom);
         parser.Found("u",&uploadDir);
+        parser.Found("o",&openCPNConfig);
         useChartCache=parser.Found("n");
         if (scaleLevel < 0.1 || scaleLevel > 10){
             LOG_ERRORC(_T("invalid scale level %lf"),scaleLevel);
@@ -423,6 +426,45 @@ private:
        }
        return new wxFileConfig(wxEmptyString,wxEmptyString,fn.GetFullPath());
     }
+    wxArrayString parseOpenCPNConfig(wxString configPath){
+        wxArrayString rt;
+        LOG_INFO("parsing OpenCPN config %s for charts",configPath);
+        if (! wxFileExists(configPath)){
+            LOG_ERROR("OpenCPN config %s not found",configPath);
+            return rt;
+        }
+        wxFileConfig cfg(wxEmptyString,wxEmptyString,configPath);
+        cfg.SetPath("PlugIns/ocharts/ChartinfoList");
+        long index;
+        wxString entry;
+        bool hasEntry=cfg.GetFirstEntry(entry,index);
+        while (hasEntry) {
+            wxString fileName = wxEmptyString;
+            wxStringTokenizer tokenizer(entry, "!");
+            if (tokenizer.HasMoreTokens()) {
+                tokenizer.GetNextToken(); //ignore the first
+            }
+            while (tokenizer.HasMoreTokens()) {
+                wxString part = tokenizer.GetNextToken();
+                if (fileName == wxEmptyString) {
+                    fileName = wxFileName::GetPathSeparator() +part;
+                } else {
+                    fileName += wxFileName::GetPathSeparator() + part;
+                }
+            }
+            if (fileName != wxEmptyString) {
+                LOG_INFO("found openCPN chart set %s", fileName);
+                if (!wxDirExists(fileName)) {
+                    LOG_ERROR("chart dir %s does not exist, ignore", fileName);
+                } else {
+                    rt.Add(fileName);
+                }
+
+            }
+            hasEntry=cfg.GetNextEntry(entry,index);
+        }
+        return rt;
+    }
     int run(wxArrayString args) {
        
         int argc = args.GetCount();
@@ -472,6 +514,14 @@ private:
         wxArrayString chartlist;
         for (size_t i=4;i<args.GetCount();i++){
             chartlist.Add(args.Item(i));
+        }
+        if (openCPNConfig != wxEmptyString){
+            wxArrayString ocpnCharts=parseOpenCPNConfig(openCPNConfig);
+            if (ocpnCharts.size() > 0){
+                for (size_t i=0;i<ocpnCharts.size();i++){
+                    chartlist.Add(ocpnCharts.Item(i));
+                }
+            }
         }
         wxArrayString uploadChartList;
         //read one level below uploadDir

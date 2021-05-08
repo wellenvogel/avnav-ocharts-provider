@@ -48,6 +48,8 @@ class Plugin:
   STARTSCRIPT="provider.sh"
   ENV_NAME="AVNAV_PROVIDER"
   CONFIG_FILE="avnav.conf"
+  USE_OCPN_CHARTS='useOCPNCharts'
+  OCPN_CONFIG='ocpnConfigFile'
   EDITABLE_CONFIG=[
     {
       'name':'port',
@@ -90,6 +92,18 @@ class Plugin:
       'name': 'memPercent',
       'description':'percent of existing mem to be used',
       'default':''
+    },
+    {
+      'name': USE_OCPN_CHARTS,
+      'description': 'Use the charts from OpenCPN when installed on the same system.\n To reread the plugin must be restarte from it\'s GUI',
+      'type':'BOOLEAN',
+      'default':False
+    },
+    {
+      'name': OCPN_CONFIG,
+      'description': 'the OpenCPN config file to read charts from (must exist)',
+      'default': os.path.expanduser('~/.opencpn/opencpn.conf'),
+      'condition':{USE_OCPN_CHARTS:True}
     }
   ]
   BASE_CONFIG=[
@@ -324,6 +338,10 @@ class Plugin:
       cmdline= cmdline + ["-x",str(self.config['memPercent'])]
     if self.config['uploadDir'] != '':
       cmdline= cmdline + ["-u",self.config['uploadDir']]
+    if str(self.config[self.USE_OCPN_CHARTS]).lower() == 'true':
+      ocpncfg=self.config[self.OCPN_CONFIG]
+      if ocpncfg is not None and ocpncfg != '':
+        cmdline= cmdline + ["-o",ocpncfg]
     cmdline=cmdline + [ocpndir,
                s57dir, configdir, str(self.config['port'])]+chartdirs
     return cmdline
@@ -426,6 +444,20 @@ class Plugin:
     return True
 
   def updateConfig(self,newConfig):
+    useOcpn=False
+    if self.USE_OCPN_CHARTS in newConfig:
+      useOcpn=str(newConfig[self.USE_OCPN_CHARTS]).lower()=='true'
+    else:
+      useOcpn=str(self.config.get(self.USE_OCPN_CHARTS)).lower() == 'true'
+    if useOcpn:
+      if self.OCPN_CONFIG in newConfig:
+        ocpncfg=newConfig.get(self.OCPN_CONFIG)
+      else:
+        ocpncfg=self.config.get(self.OCPN_CONFIG)
+      if ocpncfg is None or ocpncfg == '':
+        raise Exception("%s cannot be empty if %s is active"%(self.OCPN_CONFIG,self.USE_OCPN_CHARTS))
+      if not os.path.exists(ocpncfg):
+        raise Exception("OpenCPN config %s not found, consider deactivating %s"%(ocpncfg,self.USE_OCPN_CHARTS))
     self.api.saveConfigValues(newConfig)
     self.changeSequence+=1
 
