@@ -147,6 +147,11 @@ private:
     bool            fullyInitialized;
          
 public:
+    typedef enum{
+        FAIL,  //not redendered
+        OK,    //normal render
+        FULL   //rendered complete tile- no need to render lower tiles (only for raster charts)
+    } RenderResult;
     ChartInfo(wxString className,wxString fileName);
     ~ChartInfo();
     int         Init(bool allowRetry=false);
@@ -163,7 +168,7 @@ public:
      */
     int         HasTile(LatLon &northwest,LatLon &southeast);
     bool        UpdateBoundings(/*inout*/BoundingBox *box);
-    bool        Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom);
+    RenderResult Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom);
     ObjectList  FeatureInfo(PlugIn_ViewPort& VPoint, float lat, float lon, float tolerance);
     void        GetTileBounds(/*out*/int &xmin,int &xmax,int &ymin,int &ymax);
     TileBox     GetTileBounds();
@@ -176,7 +181,8 @@ public:
     ExtentPI    GetExtent(){return extent;}
     void        FromCache(int nativeScale,ExtentPI extent);
     bool        IsValid(){return isValid;}
-    
+    bool        IsRaster();
+
 private:
     long    lastRender;
 };

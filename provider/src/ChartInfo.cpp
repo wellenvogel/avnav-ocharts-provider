@@ -119,6 +119,10 @@ bool ChartInfo::IsOpen(){
     return chart != NULL;
 }
 
+bool ChartInfo::IsRaster(){
+    return (classname == wxString("Chart_oeuRNC"));
+}
+
 long ChartInfo::GetLastRender(){
     return lastRender;
 }
@@ -226,61 +230,67 @@ TileBox ChartInfo::GetTileBounds(){
     return rt;
 }
 
-bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom){
+ChartInfo::RenderResult ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom){
     if (chart == NULL){
-        if (!Reopen(true,false)) return false;
+        if (!Reopen(true,false)) return ChartInfo::FAIL;
     }
     lastRender=wxGetLocalTime();
     wxBitmap bitmap;
     int bltx,blty,w,h;
     Region.GetBox(bltx,blty,w,h);
-    if (classname == wxString("Chart_oeuRNC")){
+    ChartInfo::RenderResult rt=ChartInfo::FAIL;
+    if (IsRaster()){
         //compute restricted region for raster charts
         //still somehow experimental
-        PlugIn_ViewPort cpvp(VPoint);
         int x=0;
         int y=0;
         int xmax=TILE_SIZE;
         int ymax=TILE_SIZE;
         bool mustRecomputeRegion=false;
-        if (cpvp.lat_min < extent.SLAT) {
-            cpvp.lat_min=extent.SLAT;
-            mustRecomputeRegion=true;
-            ymax=TileHelper::lat2tileyOffset(cpvp.lat_min,zoom);
+        if (VPoint.lat_max < extent.SLAT || VPoint.lat_min > extent.NLAT||
+                VPoint.lon_min > extent.ELON || VPoint.lon_max < extent.WLON){
+            LOG_DEBUG("nothing left to render for tile");
+            return rt;
         }
-        if (cpvp.lat_max > extent.NLAT){
-            cpvp.lat_max=extent.NLAT;
+        if (VPoint.lat_min < extent.SLAT) {            
             mustRecomputeRegion=true;
-            y=TileHelper::lat2tileyOffset(cpvp.lat_max,zoom);
+            ymax=(int)ceil(TileHelper::lat2tileyOffset(extent.SLAT,zoom));          
+            if (ymax > TILE_SIZE) ymax=TILE_SIZE;
         }
-        if (cpvp.lon_min < extent.WLON) {
-            cpvp.lon_min=extent.WLON;
-            x=TileHelper::lon2tilexOffset(cpvp.lon_min,zoom);
+        if (VPoint.lat_max > extent.NLAT){           
+            mustRecomputeRegion=true;
+            y=(int)floor(TileHelper::lat2tileyOffset(extent.NLAT,zoom));            
+            if (y < 0) y=0;
+        }
+        if (VPoint.lon_min < extent.WLON) {            
+            x=(int)floor(TileHelper::lon2tilexOffset(extent.WLON,zoom));            
+            if (x < 0) x=0;
             mustRecomputeRegion=true;
         }
-        if (cpvp.lon_max > extent.ELON) {
-            cpvp.lon_max=extent.ELON;
+        if (VPoint.lon_max > extent.ELON) {            
             mustRecomputeRegion=true;
-            xmax=TileHelper::lon2tilexOffset(cpvp.lon_max,zoom);
-        }
+            xmax=(int)ceil(TileHelper::lon2tilexOffset(extent.ELON,zoom));            
+            if (xmax > TILE_SIZE) xmax=TILE_SIZE;
+        }        
         if (mustRecomputeRegion){
-            //if (xmax <= x ) xmax=TILE_SIZE;
-            //if (ymax <= y) ymax=TILE_SIZE;
             wxRegion cpRegion(
                 x,
                 y,
                 xmax-x,
                 ymax-y    
                 );
-            bitmap=chart->RenderRegionView(cpvp,cpRegion);
+            bitmap=chart->RenderRegionView(VPoint,cpRegion);
             cpRegion.GetBox(bltx,blty,w,h);
+            rt=ChartInfo::OK;
         }
         else{
             bitmap=chart->RenderRegionView(VPoint,Region);
+            rt=ChartInfo::FULL;
         }
     }
     else{
         bitmap=chart->RenderRegionView(VPoint,Region);
+        rt=ChartInfo::OK;
     }
     wxColour nodat;
     GetGlobalColor( _T ( "NODTA" ),&nodat );
@@ -288,13 +298,13 @@ bool ChartInfo::Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &
     bitmap.SetMask(mask);
     wxMemoryDC tempDC(bitmap);
     out.Blit(bltx,blty,w,h,&tempDC,bltx,blty,wxCOPY,true);
-    return true;
+    return rt;
 }
 
 ObjectList ChartInfo::FeatureInfo(PlugIn_ViewPort& VPoint,
             float lat, float lon, float tolerance){
     ObjectList rt;
-    if (classname == wxString("Chart_oeuRNC")){
+    if (IsRaster()){
         //if we do not handle this here
         //the dynamic cast below will succeed
         //but the chart is corrupted afterwards
