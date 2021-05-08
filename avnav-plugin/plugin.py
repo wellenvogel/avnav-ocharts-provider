@@ -64,8 +64,9 @@ class Plugin:
     {
       'name':'debug',
       'description':'debuglevel for provider',
-      'default':1,
-      'type':'NUMBER'
+      'default':'1',
+      'type':'SELECT',
+      'rangeOrList': ['0','1','2']
     },
     {
       'name':'cacheSize',
