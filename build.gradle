@@ -259,6 +259,8 @@ ospackage {
     requires('libarchive13')
     requires('libglu1-mesa')
     requires('python3-psutil')
+    requires('avnav-ocharts').or('avnav-oesenc')
+    recommends('avnav-ocharts')
     user='root'
     into ('/usr/lib/avnav/plugins/ocharts') {
         from('s57data'){
