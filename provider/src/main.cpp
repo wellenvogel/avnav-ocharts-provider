@@ -793,3 +793,24 @@ extern "C" int dummy(void){
   gluNewTess();
   return 0;
 }
+
+//testing support
+#include <dlfcn.h>
+
+extern "C" {
+#define OCPN_PIPE "/tmp/OCPN_PIPEX"
+    int (*o_open)(const char *pathname, int flags,...);
+    int open(const char *pathname, int flags,...){
+       if(!o_open) o_open =(int(*)(const char *,int,...)) dlsym(RTLD_NEXT, "open"); 
+       va_list argp;
+       va_start(argp,flags);
+       const char * mp=getenv("AVNAV_TEST_PIPE");
+       if (mp != NULL && strcmp(pathname,OCPN_PIPE) == 0){
+           printf("open translate %s to %s\n",pathname,mp);
+           pathname=mp;
+       }
+       return o_open(pathname,flags,va_arg(argp,int));
+    }
+   
+
+}
