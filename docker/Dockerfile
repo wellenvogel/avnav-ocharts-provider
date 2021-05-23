@@ -20,7 +20,7 @@ RUN if [ "$DEVENV" = "true" ] ; then curl  https://adoptopenjdk.jfrog.io/adoptop
 	apt update -y && \
 	apt install -y adoptopenjdk-8-hotspot gdb iproute2 && \
         cd /root && curl -o netbeans82.sh https://download.netbeans.org/netbeans/8.2/final/bundles/netbeans-8.2-cpp-linux-x64.sh && echo "run netbeans installer with x as root" ; else echo "DEVENV=$DEVENV" ; fi
-
+COPY updateCmake.sh /root
 
 USER $USER
 
