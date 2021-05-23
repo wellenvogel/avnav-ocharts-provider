@@ -271,6 +271,7 @@ int ChartManager::PrepareChartSets(wxArrayString& dirsAndFiles, bool setState, b
 }
 
 //we have: <system name>-<chart code>-<year>-<edition>
+//new scheme <system name>-<chart code>-<year>/<edition>-<update>
 class NameAndVersion{
 public:
     wxString name;
@@ -281,7 +282,13 @@ public:
     int      iversion;
     bool valid=false;
     NameAndVersion(){}
-    NameAndVersion(wxString name){
+    /**
+     * 
+     * @param name the chart set name
+     * @param infoVersion parsed version from chartInfo if not empty
+     */
+    
+    NameAndVersion(wxString name,wxString infoVersion){
         this->name=name;
         base=name;
         version=wxEmptyString;
@@ -290,11 +297,24 @@ public:
         for (size_t i=0;i<name.size();i++){
             if (name.GetChar(i) == '-') numDel++;
         }
-        if (numDel < 2)return;
-        wxString rest=name.BeforeLast('-',&version);
-        base=rest.BeforeLast('-',&year);
-        iyear=std::atoi(year.c_str());
+        if (numDel >= 2){
+            wxString rest=name.BeforeLast('-',&version);
+            base=rest.BeforeLast('-',&year);
+        }
+        if (infoVersion != wxEmptyString && infoVersion.Find('-') != wxNOT_FOUND){
+            //take the version info from chart info
+            year=infoVersion.BeforeFirst('-',&version);
+        }
+        if (year == wxEmptyString) return;
         iversion=std::atoi(version.c_str());
+        if (year.Find('/') != wxNOT_FOUND){
+            //new versioning schema
+            wxString edition;
+            year=year.BeforeLast('/',&edition);
+            //simple approach: multiply the edition with 10000 - should give enough room for updates
+            iversion=iversion*10000 + atoi(edition.c_str());
+        }
+        iyear=std::atoi(year.c_str());
         LOG_INFO(wxT("parsed %s to base=%s,year=%d,version=%d"),name,base,iyear,iversion);
         valid=true;
     }
@@ -314,7 +334,7 @@ public:
     NameAndVersion                  set;
     SettingsManager::EnabledState   state;
     EnabledState(){}
-    EnabledState(wxString setName,SettingsManager::EnabledState   state):set(setName),state(state){
+    EnabledState(wxString setName,wxString infoVersion,SettingsManager::EnabledState   state):set(setName,infoVersion),state(state){
         
     }
     bool IsBetter(const EnabledState &other){
@@ -337,7 +357,7 @@ int ChartManager::ComputeActiveSets(StringVector *setKeys){
         ChartSet *set=it->second;
         SettingsManager::EnabledState isActive=settings->IsChartSetEnabled(set->GetKey());
         if (set->CanDelete()){
-            EnabledState enabled(set->GetKey(),isActive);
+            EnabledState enabled(set->GetKey(),set->info.version,isActive);
             if (isActive == SettingsManager::ENABLED){
                 //if we have at least one explicitely enabled set - keep this in mind
                 LOG_INFO(wxT("found set %s being explicitely enabled,base=%s"),
@@ -375,7 +395,7 @@ int ChartManager::ComputeActiveSets(StringVector *setKeys){
         bool enabled=false;
         wxString disabledBy=wxEmptyString;
         if (set->CanDelete() && isActive == SettingsManager::UNCONFIGURED){
-             EnabledState enabledState(set->GetKey(),isActive);
+             EnabledState enabledState(set->GetKey(),set->info.version,isActive);
              vit=bestVersions.find(enabledState.set.base);
              if (vit == bestVersions.end() || vit->second.set.name==enabledState.set.name){
                  enabled=true;
