@@ -871,6 +871,9 @@ wxString *GetpSharedDataLocation(void)
 {
     return &dataDir;
 }
+wxString GetPluginDataDir(const char* plugin_name){
+    return dataDir;
+}
 wxString *GetpPrivateApplicationDataLocation(){
     return &privateDataDir;
 }

@@ -1084,6 +1084,7 @@ extern  DECL_EXP int PlatformDirSelectorDialog( wxWindow *parent, wxString *file
 extern  DECL_EXP int PlatformFileSelectorDialog( wxWindow *parent, wxString *file_spec, wxString Title, wxString initDir,
                                 wxString suggestedName, wxString wildcard);
 
+extern DECL_EXP wxString GetPluginDataDir(const char* plugin_name);
 
 /*  OpenCPN HTTP File Download PlugIn Interface   */
 
