@@ -923,7 +923,8 @@ void setPluginBaseConfig(PluginConfigBase cfg, bool sendJson) {
                     JSON_IV(%s ShowImportantTextOnly, %s) ",\n"
                     JSON_IV(%s ShowAnchorConditions, %s) ",\n"   
                     JSON_IV(%s SymbolStyle,%d) ",\n"
-                    JSON_IV(%s BoundaryStyle,%d) "\n"
+                    JSON_IV(%s BoundaryStyle,%d) ",\n"
+                    JSON_IV(%s ColorShades,%2.1f) "\n"
                 "}"),
                 OCPN_MAJOR, 
                 OCPN_MINOR,
@@ -936,7 +937,8 @@ void setPluginBaseConfig(PluginConfigBase cfg, bool sendJson) {
                 PRFX,PF_BOOL(cfg.bShowS57ImportantTextOnly),
                 PRFX,PF_BOOL(cfg.showAnchorConditions),
                 PRFX,cfg.symbolStyle,
-                PRFX,cfg.boundaryStyle
+                PRFX,cfg.boundaryStyle,
+                PRFX,0.0 //set 3 depth shades
                 );
         wxString messageId(wxT("OpenCPN Config"));
         LOG_DEBUG("sending plugin config %s",jsonMessage);
