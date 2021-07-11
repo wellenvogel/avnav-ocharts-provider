@@ -92,18 +92,6 @@ class Plugin:
       'name': 'memPercent',
       'description':'percent of existing mem to be used',
       'default':''
-    },
-    {
-      'name': USE_OCPN_CHARTS,
-      'description': 'Use the charts from OpenCPN when installed on the same system.\n To reread the plugin must be restarte from it\'s GUI',
-      'type':'BOOLEAN',
-      'default':False
-    },
-    {
-      'name': OCPN_CONFIG,
-      'description': 'the OpenCPN config file to read charts from (must exist)',
-      'default': os.path.expanduser('~/.opencpn/opencpn.conf'),
-      'condition':{USE_OCPN_CHARTS:True}
     }
   ]
   BASE_CONFIG=[
@@ -163,7 +151,19 @@ class Plugin:
           'name': 'supervisionPeriod',
           'description': 'period for memory checks (in s)',
           'default': '30'
-        }
+        },
+      {
+        'name': USE_OCPN_CHARTS,
+        'description': 'Use the charts from OpenCPN when installed on the same system.\n To reread the plugin must be restarte from it\'s GUI',
+        'type':'BOOLEAN',
+        'default':False
+      },
+      {
+        'name': OCPN_CONFIG,
+        'description': 'the OpenCPN config file to read charts from (must exist)',
+        'default': os.path.expanduser('~/.opencpn/opencpn.conf'),
+        'condition':{USE_OCPN_CHARTS:True}
+      }
       ]
   CONFIG=EDITABLE_CONFIG+BASE_CONFIG
 
