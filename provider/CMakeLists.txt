@@ -818,18 +818,7 @@ else ()
   set(wxWidgets_FIND_COMPONENTS net xml html adv aui core base webview)
 endif ()
 
-if (ARCH MATCHES "arm*" AND (NOT QT_ANDROID))
-  find_path(OPENGLESv1_INCLUDE_DIR GLES/gl.h)
-  if (OPENGLESv1_INCLUDE_DIR)
-    message(STATUS "Found OpenGLESv1")
-    add_definitions(-DocpnUSE_GL) # ocpnUSE_GLES is in config.h
 
-    set(OPENGLES_FOUND "YES")
-    set(OPENGL_FOUND "YES")
-
-    set(OPENGL_LIBRARIES "GL_static" "EGL" "X11" "drm")
-  endif ()
-endif ()
 
 if (OPENGLES_FOUND)
   list(APPEND wxwidgets_FIND_COMPONENTS gl)
@@ -918,24 +907,7 @@ if (QT_ANDROID)
   target_include_directories( ${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libexpat/include)
 endif (QT_ANDROID)
 
-# Search for opengles, short of running a program to test the speed of
-# acceleration, I simply use gles on "native linux" arm systems
-if (ARCH MATCHES "arm*" AND (NOT QT_ANDROID))
-  find_path(OPENGLESv1_INCLUDE_DIR GLES/gl.h)
-  if (OPENGLESv1_INCLUDE_DIR)
-    message(STATUS "Found OpenGLESv1")
-    add_definitions(-DocpnUSE_GLES)
-    add_definitions(-DocpnUSE_GL)
 
-    set(OPENGLES_FOUND "YES")
-    set(OPENGL_FOUND "YES")
-
-    # SET(wxWidgets_FIND_COMPONENTS ${wxWidgets_FIND_COMPONENTS} gl )
-    add_subdirectory(libs/glshim)
-
-    set(OPENGL_LIBRARIES "GL_static" "EGL" "X11" "drm")
-  endif ()
-endif ()
 
 # Building for QT_ANDROID involves a cross-building environment, So the include
 # directories, flags, etc must be stated explicitly without trying to locate
