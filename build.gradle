@@ -118,7 +118,7 @@ def VARIANTS=[
                 ['libgcc1'],
                 ['libstdc++6'],
                 ['libwxbase3.0-0v5'],
-                ['libwxgtk3.0-0v5'],
+                ['libwxgtk3.0-gtk3-0v5'],
                 ['wx3.0-i18n']
         ]],
 	
