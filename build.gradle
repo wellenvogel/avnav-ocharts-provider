@@ -121,7 +121,7 @@ def VARIANTS=[
                 ['libwxgtk3.0-gtk3-0v5'],
                 ['wx3.0-i18n']
         ]],
-	[osline:'raspbian',
+        [osline:'raspbian',
          osversion:'bullseye',
          arch: 'arm64',
          dockerbase:'arm64v8/debian',
