@@ -109,6 +109,8 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
             }
             LOG_ERROR(_T("opening %s finally failed after retry"),filename);
         }
+        delete chart;
+        this->chart=NULL;
         return false;
     }
     this->fullyInitialized=fullInit;

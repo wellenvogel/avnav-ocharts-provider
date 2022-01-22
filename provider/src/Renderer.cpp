@@ -274,8 +274,14 @@ void Renderer::DoRenderTile(RenderMessage *msg){
     for (size_t i=startIndex;i<infos.size();i++){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=chart->GetNativeScale();
-        manager->OpenChart(chart); //ensure the chart to be open
-        chart->Render(renderDc,vpoint,region,tile.zoom);
+        if (!manager->OpenChart(chart)){ //ensure the chart to be open
+            LOG_ERROR("unable to open chart %s, cannot render %s",chart->GetFileName(),tile.ToString());
+            msg->SetDone();
+            return;
+        } 
+        else{
+            chart->Render(renderDc,vpoint,region,tile.zoom);
+        }
     }
     wxImage result=renderBitmap.ConvertToImage();
     msg->StoreResult(result,true);

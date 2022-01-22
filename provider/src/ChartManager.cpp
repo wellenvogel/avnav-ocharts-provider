@@ -664,7 +664,9 @@ bool ChartManager::OpenChart(ChartInfo* chart){
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory before chart open global=%dkb,our=%dkb"),globalKb,ourKb);
-    chart->Reopen(true,true);
+    if (!chart->Reopen(true,true)){
+        return false;
+    }
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory after chart open global=%dkb,our=%dkb"),globalKb,ourKb);
     openCharts.push_back(chart);
