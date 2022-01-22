@@ -72,12 +72,13 @@ int ZoomLevelScales::FindZoomForScale(double scale) const{
     return MAX_ZOOM;
 }
 
-ChartInfo::ChartInfo(wxString className,wxString fileName) {
+ChartInfo::ChartInfo(wxString className,wxString fileName,bool isRaster) {
     this->classname=className;
     this->chart=NULL;
     this->filename=fileName;
     this->isValid=false;
     this->fullyInitialized=false;
+    this->isRaster=isRaster;
 }
 
 ChartInfo::~ChartInfo() {

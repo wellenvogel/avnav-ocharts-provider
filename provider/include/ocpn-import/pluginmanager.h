@@ -280,6 +280,7 @@ public:
     bool            bShowS57ImportantTextOnly;
     bool            bShowAtonText;
     bool            showAnchorConditions;
+    bool            bUseScamin;
     
     PluginConfigBase(){
         s57BaseDir=wxEmptyString;
@@ -300,6 +301,7 @@ public:
         bShowS57ImportantTextOnly=false;
         bShowAtonText=true;
         showAnchorConditions=true;
+        bUseScamin=true;
         
     }
     

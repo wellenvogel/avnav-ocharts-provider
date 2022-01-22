@@ -926,6 +926,7 @@ void setPluginBaseConfig(PluginConfigBase cfg, bool sendJson) {
                     "\"%s ShowSoundings\":%s,\n"
                     "\"%s DisplayCategory\":%d,\n"
                     "\"%s ShowLights\":%s,\n"
+                    JSON_IV(%s UseSCAMIN,%s) ",\n"
                     JSON_IV(%s ShowLightDescription,%s) ",\n"
                     JSON_IV(%s ShowATONLabel,%s) ",\n"
                     JSON_IV(%s ShowImportantTextOnly, %s) ",\n"
@@ -940,6 +941,7 @@ void setPluginBaseConfig(PluginConfigBase cfg, bool sendJson) {
                 PRFX,cfg.bShowSoundg?"true":"false",
                 PRFX,cfg.nDisplayCategory,
                 PRFX,cfg.showLights?"true":"false",
+                PRFX,PF_BOOL(cfg.bUseScamin),
                 PRFX,PF_BOOL(cfg.bShowLightDescription),
                 PRFX,PF_BOOL(cfg.bShowAtonText),
                 PRFX,PF_BOOL(cfg.bShowS57ImportantTextOnly),

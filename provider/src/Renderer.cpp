@@ -181,7 +181,7 @@ void FeatureInfoMessage::Process(bool discard){
     //been in the queue
     ChartSet *set=GetSet();
     if (!set->IsActive()){
-        LOG_DEBUG(wxT("HandleFeatureRequest: chart set no longer active"),tile.ToString());
+        LOG_DEBUG(wxT("HandleFeatureRequest: chart set no longer active: %s"),tile.ToString());
         SetDone();
         return;
     }
@@ -193,8 +193,12 @@ void FeatureInfoMessage::Process(bool discard){
 
     for (int i=infos.size()-1;i>=0;i--){
         ChartInfo *chart=infos[i].info;
-        vpoint.chart_scale=chart->GetNativeScale();
-        manager->OpenChart(chart); //ensure the chart to be open
+        vpoint.chart_scale=set->GetScaleForZoom(tile.zoom);//chart->GetNativeScale();
+        if (!manager->OpenChart(chart)){
+            //ensure the chart to be open
+            LOG_DEBUG(wxT("HandleFeatureRequest: unable to open chart %s:%s"),chart->GetFileName(),tile.ToString());
+            continue;
+        }
         ObjectList list=chart->FeatureInfo(vpoint,lat,lon,tolerance);
         result.insert(result.end(),list.begin(),list.end());
     }
@@ -273,7 +277,7 @@ void Renderer::DoRenderTile(RenderMessage *msg){
     LOG_DEBUG(_T("merge match for %d/%d/%d with %d entries"),tile.zoom,tile.x,tile.y,(int)infos.size());
     for (size_t i=startIndex;i<infos.size();i++){
         ChartInfo *chart=infos[i].info;
-        vpoint.chart_scale=chart->GetNativeScale();
+        vpoint.chart_scale=set->GetScaleForZoom(tile.zoom);//chart->GetNativeScale();
         if (!manager->OpenChart(chart)){ //ensure the chart to be open
             LOG_ERROR("unable to open chart %s, cannot render %s",chart->GetFileName(),tile.ToString());
             msg->SetDone();

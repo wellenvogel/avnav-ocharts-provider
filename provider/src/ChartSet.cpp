@@ -300,4 +300,6 @@ wxString ChartSet::GetSetToken(){
     MD5 token=setToken;
     return token.GetHex();
 }
-
+double ChartSet::GetScaleForZoom(int zoom){
+    return scales->GetScaleForZoom(zoom);
+}

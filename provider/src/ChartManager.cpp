@@ -196,7 +196,7 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
         LOG_INFO(wxT("skip reading chart %s as set is already complete"),chartFile.GetFullPath());
         return false;
     }
-    ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath());
+    ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath(),it->second.isRaster);
     int rt = 0;
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
