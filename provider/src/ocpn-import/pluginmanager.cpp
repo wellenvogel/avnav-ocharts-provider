@@ -418,9 +418,17 @@ PlugInContainer *PlugInManager::LoadPlugIn(wxString plugin_file)
 
       if(!plugin->IsLoaded())
       {
+            void *h=dlopen(plugin_file.c_str(),RTLD_NOW);
+            wxString reason;
+            if (h == NULL){
+              reason=wxString(dlerror());
+            }
             wxString msg(_T("   PlugInManager: Cannot load library: "));
             msg += plugin_file;
-            LOG_DEBUG(msg);
+            msg+="[";
+            msg+=reason;
+            msg+="]";
+            LOG_ERROR(msg);
             delete plugin;
             delete pic;
             return NULL;
@@ -1457,6 +1465,11 @@ void PlugInChartBaseExtended::ClearPLIBTextList()
 {
 }
 
+PlugInChartBaseExtendedPlus2::PlugInChartBaseExtendedPlus2(){}
+PlugInChartBaseExtendedPlus2::~PlugInChartBaseExtendedPlus2(){}
+
+ListOfPI_S57Obj *PlugInChartBaseExtendedPlus2::GetLightsObjRuleListVisibleAtLatLon(
+      float lat, float lon, PlugIn_ViewPort *VPoint){return NULL;}
 
 
 
@@ -1888,6 +1901,23 @@ wxString GetLocaleCanonicalName(){
 }
 wxString PI_GetPLIBColorScheme(){
     return _T(""); 
+}
+
+void PositionBearingDistanceMercator_Plugin(double lat, double lon,
+                                            double brg, double dist,
+                                            double *dlat, double *dlon)
+{
+    PositionBearingDistanceMercator(lat, lon, brg, dist, dlat, dlon);
+}
+
+void DistanceBearingMercator_Plugin(double lat0, double lon0, double lat1, double lon1, double *brg, double *dist)
+{
+    DistanceBearingMercator( lat0, lon0, lat1, lon1, brg, dist);
+}
+
+double DistGreatCircle_Plugin(double slat, double slon, double dlat, double dlon)
+{
+    return DistGreatCircle(slat, slon, dlat, dlon);
 }
 
 #include <wx/listimpl.cpp>
