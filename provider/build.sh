@@ -73,8 +73,9 @@ if [ $internal = 0 ] ; then
 	cflag=""
 	[ $doClean = 1 ] && cflag="-c"
 	set -x
-	user=`id -u -n`
-	docker run --rm --name "$container" -i $ttyopt  -v $PDIR:/src -u $user "$imagename" /bin/bash -c "cd /src && ./build.sh $bFlag $cflag -i $builddir"
+	user=`id -u`
+	group=`id -g`
+	docker run --rm --name "$container" -i $ttyopt  -v $PDIR:/src -u $user:$group "$imagename" /bin/bash -c "cd /src && ./build.sh $bFlag $cflag -i $builddir"
 	exit $?
 fi
 BUILD_DIR="$PDIR/$builddir"
