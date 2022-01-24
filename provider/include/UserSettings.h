@@ -1,4 +1,4 @@
-//generated from ./Settings.csv at 2022-01-23T20:11:11.255830
+//generated from ./Settings.csv at 2022-01-24T13:02:16.828014
 #ifndef USERSETTINGS_H
 #define USERSETTINGS_H
 #include "UserSettingsBase.h"
@@ -24,7 +24,7 @@ new UserSettingsEntryEnum(wxT("important"),wxT("/Settings/GlobalState"),wxT("S52
 new UserSettingsEntryDouble(wxT("important"),wxT("/Settings/AvNav"),wxT("chartFont"),UserSettingsEntry::TYPE_FLOAT,1,wxT("Text Font Size"),0.3,5),
 new UserSettingsEntryDouble(wxT("important"),wxT("/Settings/AvNav"),wxT("soundingsFont"),UserSettingsEntry::TYPE_FLOAT,1,wxT("Soundings Font Size"),0.3,5),
 new UserSettingsEntryDouble(wxT("important"),wxT("/Settings/AvNav"),wxT("scale"),UserSettingsEntry::TYPE_FLOAT,2,wxT("Scale"),0.2,5),
-new UserSettingsEntryInt(wxT("important"),wxT("/Settings/AvNav"),wxT("underZoom"),UserSettingsEntry::TYPE_INT,4,wxT("UnderZoom"),0,6),
+new UserSettingsEntryInt(wxT("important"),wxT("/Settings/AvNav"),wxT("underZoom"),UserSettingsEntry::TYPE_INT,4,wxT("UnderZoom"),0,8),
 new UserSettingsEntryInt(wxT("important"),wxT("/Settings/AvNav"),wxT("overZoom"),UserSettingsEntry::TYPE_INT,4,wxT("OverZoom"),1,8),
 new UserSettingsEntryBool(wxT("important"),wxT("/Settings/AvNav"),wxT("showLights"),UserSettingsEntry::TYPE_BOOL,1,wxT("Show Lights")),
 new UserSettingsEntryBool(wxT("important"),wxT("/Settings/AvNav"),wxT("showAnchorInfo"),UserSettingsEntry::TYPE_BOOL,1,wxT("Show Anchor Info")),
