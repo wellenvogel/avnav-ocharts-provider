@@ -44,7 +44,7 @@ if [ "$1" = "" ] ; then
 fi
 
 imagename="$2"
-container="$imagename"
+container=`echo "$imagename" | tr -d '/:'`
 builddir="$1"
 PDIR=`dirname $0`
 PDIR=`readlink -f "$PDIR"`

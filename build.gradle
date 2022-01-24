@@ -47,6 +47,7 @@ def VARIANTS=[
         [osline:'ubuntu',
          osversion:'bionic', 
          arch: 'amd64',
+         tag: 1,
          dockerfile: 'Dockerfile.gtk2',       
          dependencies: [
                 ['libc6'],
@@ -59,6 +60,7 @@ def VARIANTS=[
         [osline:'debian',
          osversion:'buster',
          arch: 'i386',
+         tag: 1,
          dockerbase:'i386/debian',
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -72,6 +74,7 @@ def VARIANTS=[
         [osline:'debian',
          osversion:'buster',
          arch: 'amd64',
+         tag: 1,
          dockerbase:'debian',
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -84,7 +87,8 @@ def VARIANTS=[
         ]],
         [osline:'raspbian',
          osversion:'buster',
-         arch: 'armhf', 
+         arch: 'armhf',
+         tag: 1,
          dockerbase:'arm32v7/debian', 
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -98,6 +102,7 @@ def VARIANTS=[
         [osline:'raspbian',
          osversion:'buster',
          arch: 'arm64',
+         tag: 1,
          dockerbase:'arm64v8/debian',
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -110,8 +115,9 @@ def VARIANTS=[
          ]],
          [osline:'raspbian',
          osversion:'bullseye',
-         arch: 'armhf', 
-         dockerbase:'arm32v7/debian', 
+         arch: 'armhf',
+         tag: 1,
+         dockerbase:'arm32v7/debian',
          dockerfile:'Dockerfile.gtk3',
          dependencies:[
                 ['libc6'],
@@ -124,6 +130,7 @@ def VARIANTS=[
         [osline:'raspbian',
          osversion:'bullseye',
          arch: 'arm64',
+         tag: 1,
          dockerbase:'arm64v8/debian',
          dockerfile:'Dockerfile.gtk3',
          dependencies:[
@@ -310,21 +317,37 @@ def imageExists(name){
     def id="docker images -q \"$name\"".execute().text.replaceAll("[\r\n]*","")
 }
 
-class DockerBuild extends Exec{
-    public static def getImageName(osline,osversion,arch){
-       return "avnavocharts-build-$osline-$osversion-$arch"
+
+class DockerTask extends Exec{
+    static def dockerRepo="wellenvogel"
+    public static def getImageName(osline,osversion,arch,tag){
+       return "$dockerRepo/avnavocharts-build-$osline-$osversion-$arch:$tag"
     }
     def dockerBase
     def osline
     def osversion
     def arch
     def dockerFile
-    @TaskAction
-    void exec(){
+    def tag=1
+    def getCommandArgs(dockerBase,osversion,uid,gid,uname,dockerFile,imageName){
+        return []
+    }
+
+    def imageExists(){
+        def iname=imageFromParam()
+        def iid="docker images -q $iname".execute().text.replaceAll("[\r\n]*","")
+        logger.lifecycle("check image $iname => #$iid#")
+        return "$iid" != ""
+    }
+    def imageFromParam(){
         assert osline != null
         assert osversion != null
         assert dockerFile != null
         assert arch != null
+        return getImageName(osline,osversion,arch,tag)
+    }
+    @TaskAction
+    void exec(){
         def uid="id -u".execute().text.replaceAll("[\r\n]*","")
         assert uid
         def gid="id -g".execute().text.replaceAll("[\r\n]*","")
@@ -332,30 +355,96 @@ class DockerBuild extends Exec{
         def uname="id -u -n".execute().text.replaceAll("[\r\n]*","")
         assert uname
         logger.info("uid=$uid,gid=$gid,uname=$uname")
-        def imageName=getImageName(osline,osversion,arch)
+        def imageName=imageFromParam()
         if (dockerBase == null) dockerBase=osline
         executable "docker"
         workingDir project.file("docker")
-        args(['build', '--build-arg',"OSLINE=$dockerBase",
-                '--build-arg',"OSVERSION=$osversion",
-                '--build-arg',"UID=$uid",
-                '--build-arg',"GID=$gid",
-                '--build-arg',"USER=$uname",
-                '-f', dockerFile,
-                '-t', imageName,'.'])
+        args(getCommandArgs(dockerBase,osversion,uid,gid,uname,dockerFile,imageName))
         super.exec()
     }
 }
+
+class DockerBuild extends DockerTask{
+    DockerBuild(){
+        onlyIf{ !imageExists()}
+    }
+    def getCommandArgs(dockerBase,osversion,uid,gid,uname,dockerFile,imageName){
+       return ['build', '--build-arg',"OSLINE=$dockerBase",
+               '--build-arg',"OSVERSION=$osversion",
+               '--build-arg',"UID=$uid",
+               '--build-arg',"GID=$gid",
+               '--build-arg',"USER=$uname",
+               '-f', dockerFile,
+               '-t', imageName,'.']
+    }
+}
+class DockerPush extends DockerTask{
+    def getCommandArgs(dockerBase,osversion,uid,gid,uname,dockerFile,imageName){
+        return [
+                "push",
+                imageName
+        ]
+    }
+
+}
+class DockerPull extends DockerTask{
+    DockerPull(){
+        ignoreExitValue=true
+        onlyIf {!imageExists()}
+    }
+    def getCommandArgs(dockerBase,osversion,uid,gid,uname,dockerFile,imageName){
+        return [
+                "pull",
+                imageName
+        ]
+    }
+
+
+}
+task buildImages {
+    doLast{
+        logger.lifecycle("images created")
+    }
+}
+task pushAll{
+    doLast{
+        logger.lifecycle("images pushed")
+    }
+}
 VARIANTS.each { variant ->
-    def imageName=DockerBuild.getImageName(variant.osline,variant.osversion,variant.arch)
-    def dt=tasks.create(name: "dockerbuild-${imageName}",type: DockerBuild){ DockerBuild e->
+    def imageName=DockerBuild.getImageName(variant.osline,variant.osversion,variant.arch,variant.tag)
+    def nameBase=imageName.replaceAll("[/:]*","")
+    def dp=tasks.create(name: "dockerpull-${nameBase}",type: DockerPull){ DockerPull e->
         e.dockerFile=variant.dockerfile
         e.dockerBase=variant.dockerbase
         e.osline=variant.osline
         e.osversion=variant.osversion
         e.arch=variant.arch
+        e.tag=variant.tag
+    }
+    logger.lifecycle("created docker push task ${dp.name}")
+    def dt=tasks.create(name: "dockerbuild-${nameBase}",type: DockerBuild){ DockerBuild e->
+        e.dockerFile=variant.dockerfile
+        e.dockerBase=variant.dockerbase
+        e.osline=variant.osline
+        e.osversion=variant.osversion
+        e.arch=variant.arch
+        e.tag=variant.tag
+        e.dependsOn(dp)
     }
     logger.lifecycle("created docker build task ${dt.name}")
+    buildImages.dependsOn(dt)
+    def du=tasks.create(name: "dockerpush-${nameBase}",type: DockerPush){ DockerPush e->
+        e.dockerFile=variant.dockerfile
+        e.dockerBase=variant.dockerbase
+        e.osline=variant.osline
+        e.osversion=variant.osversion
+        e.arch=variant.arch
+        e.tag=variant.tag
+        e.dependsOn(dt)
+    }
+    logger.lifecycle("created docker push task ${du.name}")
+    pushAll.dependsOn(du)
     def workName="${variant.osline}-${variant.osversion}-${variant.arch}"
     def exeBuild=tasks.create(name:"build-${workName}",type: Exec){ Exec e->
         e.workingDir(file("provider"))
