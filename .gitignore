@@ -15,3 +15,4 @@ docker/_config
 charts/
 **/*.log.*
 
+/provider/build/

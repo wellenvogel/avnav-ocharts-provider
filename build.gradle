@@ -456,7 +456,7 @@ VARIANTS.each { variant ->
     }
     tasks.build.dependsOn(exeBuild)
     logger.lifecycle("created build task ${exeBuild.name}")
-    def buildOutput="provider/${workName}"
+    def buildOutput="provider/build/${workName}"
     def exeName="AvnavOchartsProvider"
     def tkHandler="tokenHandler.js"
     def debBuild=tasks.create(name:"package-${workName}",type: Deb){  d ->
