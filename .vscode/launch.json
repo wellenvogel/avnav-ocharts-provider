@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/provider/build/Debug/AvnavOchartsProvider",
+            "args": [
+                "-n",
+                "-d", "1", 
+                "-t", "1",
+                "-x",  "30",
+                "-e", "../o-charts_pi/libs/oeserverd/linux64" ,
+                "-o", "../opencpn.conf" ,
+                "../o-charts_pi/build/Debug",
+                "testbase", "testbase/test", "8082"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {"name":"DISPLAY","value":"172.17.0.1:0"},
+                {"name":"AVNAV_TEST_PIPE","value":"/tmp/AVNAV_PIPE"},
+                {"name":"PATH","value":"/usr/bin:${workspaceFolder}/../o-charts_pi/libs/oeserverd/linux64"}
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

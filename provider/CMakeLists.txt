@@ -89,6 +89,8 @@ if (POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif ()
 
+message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+
 # Prefer libGL.so to libOpenGL.so, see CMP0072
 set(OpenGL_GL_PREFERENCE "LEGACY")
 
@@ -778,6 +780,13 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/tokenHandler/test.html
     ${CMAKE_BINARY_DIR})
+IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+add_custom_command(
+  TARGET ${PACKAGE_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+  ../../../gui/build/debug
+  ${CMAKE_BINARY_DIR}/gui)  
+ENDIF()
 
 if (APPLE)
   target_include_directories(
