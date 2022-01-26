@@ -24,6 +24,7 @@
             "environment": [
                 {"name":"DISPLAY","value":"172.17.0.1:0"},
                 {"name":"AVNAV_TEST_PIPE","value":"/tmp/AVNAV_PIPE"},
+                {"name":"AVNAV_TESTKEY","value": "${input:testkey}"},
                 {"name":"PATH","value":"/usr/bin:${workspaceFolder}/../o-charts_pi/libs/oeserverd/linux64"}
             ],
             "externalConsole": false,
@@ -35,6 +36,17 @@
                     "ignoreFailures": true
                 }
             ]
+        }
+    ],
+    "inputs": [
+        {
+            "id":"testkey",
+            "type": "command",
+            "command": "extension.commandvariable.file.content",
+            "args":{
+                "fileName": "${workspaceFolder}/testbase/testkey",
+                "default":""
+            }
         }
     ]
 }

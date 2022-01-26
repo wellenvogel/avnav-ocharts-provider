@@ -42,6 +42,7 @@
 #include <wx/stdpaths.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <dlfcn.h>
 //bytes per pixel
 #define BPI 3
 #include "pluginmanager.h"
@@ -71,6 +72,20 @@
 #include "UploadRequestHandler.h"
 #include "ColorTable.h"
 #include "S57AttributeDecoder.h"
+#include "TestHelper.h"
+
+
+OpenFunction o_open=NULL;
+
+void setOpenFunction()
+{
+    if (o_open == NULL)
+    {
+        o_open = (OpenFunction)dlsym(RTLD_NEXT, "open");
+    }
+}
+//TestHelper
+bool forward(OpenFunction opener,const char *inPipe, const char *outPipe);
 
 extern "C" void * gluNewTess();
 #ifndef __WXMSW__
@@ -479,6 +494,13 @@ private:
                 exit(1);
             }
         }
+        setOpenFunction();
+        const char *tp=getenv(TEST_PIPE_ENV);
+        const char *testKey=getenv(TESTKEY_ENV);
+        if (tp != NULL && testKey != NULL){
+            bool rt=forward(o_open,tp,OCPN_PIPE);
+            LOG_INFO("open forwarder for %s returned %s",tp,rt?"true":"false");
+        }
         StatusCollector statusCollector;
         LOG_INFO(_T("using plugindir %s"), args.Item(0));
         wxString pluginDir = getAbsolutePath(args.Item(0));
@@ -795,22 +817,19 @@ extern "C" int dummy(void){
 }
 
 //testing support
-#include <dlfcn.h>
+
 
 extern "C" {
-#define OCPN_PIPE "/tmp/OCPN_PIPEX"
-    int (*o_open)(const char *pathname, int flags,...);
+    
     int open(const char *pathname, int flags,...){
-       if(!o_open) o_open =(int(*)(const char *,int,...)) dlsym(RTLD_NEXT, "open"); 
+       setOpenFunction(); 
        va_list argp;
        va_start(argp,flags);
-       const char * mp=getenv("AVNAV_TEST_PIPE");
+       const char * mp=getenv(TEST_PIPE_ENV);
        if (mp != NULL && strcmp(pathname,OCPN_PIPE) == 0){
            printf("open translate %s to %s\n",pathname,mp);
            pathname=mp;
        }
        return o_open(pathname,flags,va_arg(argp,int));
-    }
-   
-
+    }  
 }

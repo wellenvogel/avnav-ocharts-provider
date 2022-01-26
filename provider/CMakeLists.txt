@@ -659,6 +659,7 @@ set(
   include/Types.h
   include/ColorTable.h
   include/S57AttributeDecoder.h
+  include/TestHelper.h
   include/requestHandler/RequestHandler.h
   include/requestHandler/ChartRequestHandler.h
   include/requestHandler/TokenRequestHandler.h
@@ -707,7 +708,7 @@ set(
   src/S57AttributeDecoder.cpp
   src/HTTPd/Worker.cpp
   src/HTTPd/HTTPServer.cpp
-
+  src/TestHelper.cpp
 )
 
 

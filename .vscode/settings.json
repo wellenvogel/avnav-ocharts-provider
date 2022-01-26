@@ -3,5 +3,6 @@
     "cmake.buildDirectory": "${workspaceFolder}/provider/build/${buildType}",
     "cmake.configureSettings": {
         "CMAKE_BUILD_TYPE": "${buildType}"
-     }
+    },
+    "C_Cpp.intelliSenseEngineFallback": "Enabled"
 }
