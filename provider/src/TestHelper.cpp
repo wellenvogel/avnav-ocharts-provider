@@ -104,7 +104,7 @@ class Forwarder : public Thread{
                         continue;
                     }
                 }
-                size_t rb=read(inPipe,buffer,1025);
+                ssize_t rb=read(inPipe,buffer,1025);
                 if (rb <= 0){
                     LOG_DEBUG("%s: read error",PRFX);
                     close(inPipe);
@@ -114,9 +114,9 @@ class Forwarder : public Thread{
                 if (rb == 1025 && testKey != NULL){
                     buffer[1025]=0;
                     unsigned char cmd=buffer[0];
-                    if (cmd == 0 || cmd == 3 || cmd == 5 || cmd == 4 || cmd == 1)
+                    if (cmd == 0 || cmd == 3 || cmd == 5 || cmd == 4 )
                     {
-                        if (strcmp(&buffer[513], testKey) == 0 || cmd == 1)
+                        if (strcmp(&buffer[513], testKey) == 0 )
                         {
                             strncpy(fname, &buffer[257], 256);
                             fname[256] = 0;
@@ -125,11 +125,6 @@ class Forwarder : public Thread{
                             int fifoHandle=openFunction(fifo,O_WRONLY|O_CLOEXEC);
                             if (fifoHandle < 0){
                                 LOG_ERROR("%s: unable to open private fifo %s",PRFX,fifo);
-                                continue;
-                            }
-                            if (cmd == 1){
-                                write(fifoHandle,"OK",2);
-                                close(fifoHandle);
                                 continue;
                             }
                             int fileHandle=open(fname,O_RDONLY|O_CLOEXEC);
@@ -166,7 +161,7 @@ class Forwarder : public Thread{
                         continue;
                     }
                 }
-                int wr=write(outPipe,buffer,rb);
+                ssize_t wr=write(outPipe,buffer,rb);
                 if (wr != rb){
                     LOG_ERROR("%s: unable to write to out fifo",PRFX);
                     close(outPipe);
