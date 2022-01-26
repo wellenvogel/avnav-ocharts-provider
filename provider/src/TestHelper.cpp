@@ -114,9 +114,9 @@ class Forwarder : public Thread{
                 if (rb == 1025 && testKey != NULL){
                     buffer[1025]=0;
                     unsigned char cmd=buffer[0];
-                    if (cmd == 0 || cmd == 3 || cmd == 5 || cmd == 4)
+                    if (cmd == 0 || cmd == 3 || cmd == 5 || cmd == 4 || cmd == 1)
                     {
-                        if (strcmp(&buffer[513], testKey) == 0)
+                        if (strcmp(&buffer[513], testKey) == 0 || cmd == 1)
                         {
                             strncpy(fname, &buffer[257], 256);
                             fname[256] = 0;
@@ -125,6 +125,11 @@ class Forwarder : public Thread{
                             int fifoHandle=openFunction(fifo,O_WRONLY|O_CLOEXEC);
                             if (fifoHandle < 0){
                                 LOG_ERROR("%s: unable to open private fifo %s",PRFX,fifo);
+                                continue;
+                            }
+                            if (cmd == 1){
+                                write(fifoHandle,"OK",2);
+                                close(fifoHandle);
                                 continue;
                             }
                             int fileHandle=open(fname,O_RDONLY|O_CLOEXEC);
