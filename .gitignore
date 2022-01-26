@@ -16,3 +16,5 @@ charts/
 **/*.log.*
 
 /provider/build/
+testbase/test/*
+testbase/testkey
