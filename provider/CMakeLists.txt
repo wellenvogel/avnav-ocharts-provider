@@ -89,6 +89,8 @@ if (POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif ()
 
+message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+
 # Prefer libGL.so to libOpenGL.so, see CMP0072
 set(OpenGL_GL_PREFERENCE "LEGACY")
 
@@ -657,6 +659,7 @@ set(
   include/Types.h
   include/ColorTable.h
   include/S57AttributeDecoder.h
+  include/TestHelper.h
   include/requestHandler/RequestHandler.h
   include/requestHandler/ChartRequestHandler.h
   include/requestHandler/TokenRequestHandler.h
@@ -671,7 +674,12 @@ set(
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_definitions(-DDEBUG)
-    set(HDRS ${HDRS} include/publicKeyDebug.h)
+    if (NOT AVNAV_DEBUG_STANDALONE)
+      set(HDRS ${HDRS} include/publicKeyDebug.h)
+    else(NOT AVNAV_DEBUG_STANDALONE)
+      add_definitions(-DAVNAV_DEBUG_STANDALONE)
+      set(HDRS ${HDRS} include/publicKey.h)
+    endif(NOT AVNAV_DEBUG_STANDALONE)  
 ELSE(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     set(HDRS ${HDRS} include/publicKey.h)
 ENDIF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -705,7 +713,7 @@ set(
   src/S57AttributeDecoder.cpp
   src/HTTPd/Worker.cpp
   src/HTTPd/HTTPServer.cpp
-
+  src/TestHelper.cpp
 )
 
 
@@ -763,7 +771,11 @@ INCLUDE_DIRECTORIES(OPENSSL_INCLUDE_DIR)
 target_link_libraries(${PACKAGE_NAME} PRIVATE ${OPENSSL_LIBRARIES})
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    set(TKHANDLER_SRC ${CMAKE_SOURCE_DIR}/tokenHandler/tokenHandlerDebug.js)
+    if (NOT AVNAV_DEBUG_STANDALONE)
+      set(TKHANDLER_SRC ${CMAKE_SOURCE_DIR}/tokenHandler/tokenHandlerDebug.js)
+    else(NOT AVNAV_DEBUG_STANDALONE)
+      set(TKHANDLER_SRC ${CMAKE_SOURCE_DIR}/tokenHandler/tokenHandler.js)
+    endif(NOT AVNAV_DEBUG_STANDALONE)
 ELSE(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     set(TKHANDLER_SRC ${CMAKE_SOURCE_DIR}/tokenHandler/tokenHandler.js)
 ENDIF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -778,6 +790,13 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/tokenHandler/test.html
     ${CMAKE_BINARY_DIR})
+IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+add_custom_command(
+  TARGET ${PACKAGE_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+  ../../../gui/build/debug
+  ${CMAKE_BINARY_DIR}/gui)  
+ENDIF()
 
 if (APPLE)
   target_include_directories(

@@ -47,7 +47,7 @@ def VARIANTS=[
         [osline:'ubuntu',
          osversion:'bionic', 
          arch: 'amd64',
-         tag: 1,
+         tag: 2,
          dockerfile: 'Dockerfile.gtk2',       
          dependencies: [
                 ['libc6'],
@@ -60,7 +60,7 @@ def VARIANTS=[
         [osline:'debian',
          osversion:'buster',
          arch: 'i386',
-         tag: 1,
+         tag: 2,
          dockerbase:'i386/debian',
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -74,7 +74,7 @@ def VARIANTS=[
         [osline:'debian',
          osversion:'buster',
          arch: 'amd64',
-         tag: 1,
+         tag: 2,
          dockerbase:'debian',
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -88,7 +88,7 @@ def VARIANTS=[
         [osline:'raspbian',
          osversion:'buster',
          arch: 'armhf',
-         tag: 1,
+         tag: 2,
          dockerbase:'arm32v7/debian', 
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -102,7 +102,7 @@ def VARIANTS=[
         [osline:'raspbian',
          osversion:'buster',
          arch: 'arm64',
-         tag: 1,
+         tag: 2,
          dockerbase:'arm64v8/debian',
          dockerfile:'Dockerfile.gtk2',
          dependencies:[
@@ -116,7 +116,7 @@ def VARIANTS=[
          [osline:'raspbian',
          osversion:'bullseye',
          arch: 'armhf',
-         tag: 1,
+         tag: 2,
          dockerbase:'arm32v7/debian',
          dockerfile:'Dockerfile.gtk3',
          dependencies:[
@@ -130,7 +130,7 @@ def VARIANTS=[
         [osline:'raspbian',
          osversion:'bullseye',
          arch: 'arm64',
-         tag: 1,
+         tag: 2,
          dockerbase:'arm64v8/debian',
          dockerfile:'Dockerfile.gtk3',
          dependencies:[
@@ -371,9 +371,6 @@ class DockerBuild extends DockerTask{
     def getCommandArgs(dockerBase,osversion,uid,gid,uname,dockerFile,imageName){
        return ['build', '--build-arg',"OSLINE=$dockerBase",
                '--build-arg',"OSVERSION=$osversion",
-               '--build-arg',"UID=$uid",
-               '--build-arg',"GID=$gid",
-               '--build-arg',"USER=$uname",
                '-f', dockerFile,
                '-t', imageName,'.']
     }
@@ -459,7 +456,7 @@ VARIANTS.each { variant ->
     }
     tasks.build.dependsOn(exeBuild)
     logger.lifecycle("created build task ${exeBuild.name}")
-    def buildOutput="provider/${workName}"
+    def buildOutput="provider/build/${workName}"
     def exeName="AvnavOchartsProvider"
     def tkHandler="tokenHandler.js"
     def debBuild=tasks.create(name:"package-${workName}",type: Deb){  d ->
