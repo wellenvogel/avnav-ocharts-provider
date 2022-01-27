@@ -30,9 +30,17 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <vector>
+#include <dlfcn.h>
 #include "SimpleThread.h"
 #include "Logger.h"
 #include "TestHelper.h"
+typedef int (*OpenFunction)(const char *pathname, int flags,...);
+
+
+#define TESTKEY_ENV "AVNAV_TEST_KEY"
+#define OCPN_PIPE "/tmp/OCPN_PIPEX"
+#define TEST_PIPE_ENV "AVNAV_TEST_PIPE"
+
 
 #define BUFSIZE 4096
 #define PRFX "forward"
@@ -160,6 +168,7 @@ class Forwarder : public Thread{
                         usleep(500000);
                         continue;
                     }
+                    LOG_INFO("%s: outpipe %s opened",PRFX,outName);
                 }
                 ssize_t wr=write(outPipe,buffer,rb);
                 if (wr != rb){
@@ -173,17 +182,53 @@ class Forwarder : public Thread{
         }
 };
 
+OpenFunction o_open=NULL;
 
-bool forward(OpenFunction opener,const char *inPipe, const char *outPipe){
-    struct stat state;
-    if (stat(inPipe,&state) != 0){
-        if (mkfifo(inPipe,0666) < 0){
-            LOG_ERROR("%s: unable to create fifo %s",PRFX,inPipe);
-            return false;
-        }
+void setOpenFunction()
+{
+    if (o_open == NULL)
+    {
+        o_open = (OpenFunction)dlsym(RTLD_NEXT, "open");
     }
-    Forwarder *fw=new Forwarder(opener,inPipe,outPipe);
-    fw->start();
-    fw->detach();
-    return true;
+}
+
+
+
+
+void initTest()
+{
+    const char *tp = getenv(TEST_PIPE_ENV);
+    const char *testKey = getenv(TESTKEY_ENV);
+    if (tp != NULL && testKey != NULL)
+    {
+        setOpenFunction();
+        struct stat state;
+        if (stat(tp, &state) != 0)
+        {
+            if (mkfifo(tp, 0666) < 0)
+            {
+                LOG_ERROR("%s: unable to create fifo %s", PRFX, tp);
+                return;
+            }
+        }
+        Forwarder *fw = new Forwarder(o_open, tp, OCPN_PIPE);
+        fw->start();
+        fw->detach();
+        LOG_INFO("open forwarder for %s", tp);
+    }
+}
+
+extern "C" {
+    
+    int open(const char *pathname, int flags,...){
+       setOpenFunction(); 
+       va_list argp;
+       va_start(argp,flags);
+       const char * mp=getenv(TEST_PIPE_ENV);
+       if (mp != NULL && strcmp(pathname,OCPN_PIPE) == 0){
+           printf("open translate %s to %s\n",pathname,mp);
+           pathname=mp;
+       }
+       return o_open(pathname,flags,va_arg(argp,int));
+    }  
 }
