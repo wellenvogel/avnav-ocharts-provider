@@ -35,6 +35,11 @@
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
+                {
+                    "description": "pass usr1",
+                    "text": "handle SIGUSR1 pass nostop",
+                    "ignoreFailures": true
+                }
             ]
         }
     ],
