@@ -3,6 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
+                "/usr/include/wx-3.0",
+                "${workspaceFolder}/provider/**",
                 "/usr/include/wx-3.0"
             ],
             "defines": [],

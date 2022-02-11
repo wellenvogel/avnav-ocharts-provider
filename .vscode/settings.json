@@ -4,5 +4,5 @@
     "cmake.configureSettings": {
         "CMAKE_BUILD_TYPE": "${buildType}"
     },
-    "C_Cpp.intelliSenseEngineFallback": "Enabled"
+    "C_Cpp.default.intelliSenseMode": "gcc-x64"
 }
