@@ -72,18 +72,12 @@ class Writer : public Thread{
 };
 
 class Forwarder : public Thread{
-    const char * inName=NULL;
     const char * outName=NULL;
     std::vector<Writer*> writers;
     OpenFunction openFunction;
     int inPipe=-1;
     int outPipe=-1;
     public:
-        Forwarder(OpenFunction open,const char *inName, const char *outName){
-            this->openFunction=open;
-            this->inName=inName;
-            this->outName=outName;
-        }
         Forwarder(OpenFunction open,int readFd, const char *outName){
             this->openFunction=open;
             this->inPipe=readFd;
@@ -110,21 +104,9 @@ class Forwarder : public Thread{
                         it++;
                     }
                 }
-                if (inPipe == -1){
-                    inPipe=openFunction(inName,O_RDONLY|O_CLOEXEC);
-                    if (inPipe < 0){
-                        LOG_DEBUG("%s,unable to open in %s",PRFX,inName);
-                        usleep(500000);
-                        continue;
-                    }
-                }
                 ssize_t rb=read(inPipe,buffer,1025);
                 if (rb <= 0){
                     LOG_DEBUG("%s: read error",PRFX);
-                    if (inName != NULL){
-                        close(inPipe);
-                        inPipe=-1;
-                    }
                     continue;
                 }
                 if (rb == 1025 && testKey != NULL){
@@ -225,25 +207,12 @@ void initTest()
             fw= new Forwarder(o_open,fds[0],OCPN_PIPE);
             pipeFd=fds[1];
         }
-        else
-        {
-            struct stat state;
-            if (stat(tp, &state) != 0)
-            {
-                if (mkfifo(tp, 0666) < 0)
-                {
-                    LOG_ERROR("%s: unable to create fifo %s", PRFX, tp);
-                    return;
-                }
-            }
-            fw = new Forwarder(o_open, tp, OCPN_PIPE);
-        }
         if (fw == NULL){
             return;
         }
         fw->start();
         fw->detach();
-        LOG_INFO("open forwarder for %s", tp);
+        LOG_INFO("open forwarder for %s", testKey);
     }
 }
 

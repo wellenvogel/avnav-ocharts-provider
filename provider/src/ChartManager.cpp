@@ -294,13 +294,6 @@ public:
         version=wxEmptyString;
         year=wxEmptyString;
         int numDel=0;
-        for (size_t i=0;i<name.size();i++){
-            if (name.GetChar(i) == '-') numDel++;
-        }
-        if (numDel >= 2){
-            wxString rest=name.BeforeLast('-',&version);
-            base=rest.BeforeLast('-',&year);
-        }
         if (infoVersion != wxEmptyString && infoVersion.Find('-') != wxNOT_FOUND){
             //take the version info from chart info
             year=infoVersion.BeforeFirst('-',&version);
@@ -308,11 +301,30 @@ public:
         if (year == wxEmptyString) return;
         iversion=std::atoi(version.c_str());
         if (year.Find('/') != wxNOT_FOUND){
-            //new versioning schema
+            //new versioning schema oeuSENC-BE_DE_NL-2022-2-1-base-desktop 
+            //version schema: year/edition/update version 2022/2-1
+            //year would contain 2022/2, version: 1
+            wxString convertedVersion=infoVersion;
+            convertedVersion.Replace("/","-");
+            convertedVersion+=wxString("-");
+            base=name;
+            //strip 2022-2-1- from the name
+            base.Replace(convertedVersion,"");
             wxString edition;
             year=year.BeforeLast('/',&edition);
             //simple approach: multiply the edition with 10000 - should give enough room for updates
-            iversion=iversion*10000 + atoi(edition.c_str());
+            iversion=iversion + 1000*atoi(edition.c_str());
+        }
+        else{
+            //old schema
+            //desktop-DE-2020-21
+            for (size_t i=0;i<name.size();i++){
+                if (name.GetChar(i) == '-') numDel++;
+            }
+            if (numDel >= 2){
+                wxString rest=name.BeforeLast('-',&version);
+                base=rest.BeforeLast('-',&year);
+            }
         }
         iyear=std::atoi(year.c_str());
         LOG_INFO(wxT("parsed %s to base=%s,year=%d,version=%d"),name,base,iyear,iversion);
