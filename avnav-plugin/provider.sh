@@ -18,7 +18,7 @@ if [ "$AVNAV_PROVIDER_WORKDIR" != "" ] ; then
 fi
 echo "working in $workdir"
 cd $workdir
-if [ -f $TESTSCRIPT ] ; then
+if [ -f $TESTSCRIPT  -a "$AVNAV_TEST_KEY" = "" ] ; then
     echo "testscript $TESTSCRIPT found, using it"
     $TESTSCRIPT $PIPE /tmp/OCPN_PIPEX &
     exec env AVNAV_TEST_PIPE=$PIPE xvfb-run -a -s "-screen 0 512x512x24" $PDIR/AvnavOchartsProvider $*
