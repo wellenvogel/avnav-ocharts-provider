@@ -165,8 +165,6 @@ class Forwarder : public Thread{
                     LOG_ERROR("%s: unable to write to out fifo",PRFX);
                     close(outPipe);
                     outPipe=-1;
-                    close(inPipe);
-                    inPipe=-1;
                 }
             }
         }
