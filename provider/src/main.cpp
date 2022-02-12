@@ -475,7 +475,7 @@ private:
                     LOG_ERROR("chart dir %s does not exist, ignore", fileName);
                 } else {
                     if (std::find(ocpnChartDirs.begin(),ocpnChartDirs.end(),fileName) == ocpnChartDirs.end()){
-                        LOG_WARNING("found chart dir %s in ocharts but not on opencpn level",fileName);
+                        LOG_INFO("found chart dir %s in ocharts but not on opencpn level",fileName);
                     }
                     else{
                         rt.Add(fileName);
