@@ -42,6 +42,8 @@
 #include <wx/stdpaths.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <vector>
+#include <algorithm>
 //bytes per pixel
 #define BPI 3
 #include "pluginmanager.h"
@@ -437,10 +439,22 @@ private:
             return rt;
         }
         wxFileConfig cfg(wxEmptyString,wxEmptyString,configPath);
-        cfg.SetPath("PlugIns/ocharts/ChartinfoList");
+        //1st: get the chart dirs at OpenCPN level
+        std::vector<wxString> ocpnChartDirs;
+        cfg.SetPath("/ChartDirectories");
         long index;
         wxString entry;
         bool hasEntry=cfg.GetFirstEntry(entry,index);
+        while (hasEntry) {
+            wxString value=cfg.Read(entry,"");
+            if (value != wxEmptyString){
+                value=value.BeforeFirst('^',NULL);
+                ocpnChartDirs.push_back(value);
+            }
+            hasEntry=cfg.GetNextEntry(entry,index);
+        }
+        cfg.SetPath("/PlugIns/ocharts/ChartinfoList");
+        hasEntry=cfg.GetFirstEntry(entry,index);
         while (hasEntry) {
             wxString fileName = wxEmptyString;
             wxStringTokenizer tokenizer(entry, "!");
@@ -460,7 +474,12 @@ private:
                 if (!wxDirExists(fileName)) {
                     LOG_ERROR("chart dir %s does not exist, ignore", fileName);
                 } else {
-                    rt.Add(fileName);
+                    if (std::find(ocpnChartDirs.begin(),ocpnChartDirs.end(),fileName) == ocpnChartDirs.end()){
+                        LOG_WARNING("found chart dir %s in ocharts but not on opencpn level",fileName);
+                    }
+                    else{
+                        rt.Add(fileName);
+                    }
                 }
 
             }
