@@ -196,7 +196,7 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
         LOG_INFO(wxT("skip reading chart %s as set is already complete"),chartFile.GetFullPath());
         return false;
     }
-    ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath());
+    ChartInfo *info = new ChartInfo(it->second.classname,chartFile.GetFullPath(),it->second.isRaster);
     int rt = 0;
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
@@ -294,13 +294,6 @@ public:
         version=wxEmptyString;
         year=wxEmptyString;
         int numDel=0;
-        for (size_t i=0;i<name.size();i++){
-            if (name.GetChar(i) == '-') numDel++;
-        }
-        if (numDel >= 2){
-            wxString rest=name.BeforeLast('-',&version);
-            base=rest.BeforeLast('-',&year);
-        }
         if (infoVersion != wxEmptyString && infoVersion.Find('-') != wxNOT_FOUND){
             //take the version info from chart info
             year=infoVersion.BeforeFirst('-',&version);
@@ -308,11 +301,30 @@ public:
         if (year == wxEmptyString) return;
         iversion=std::atoi(version.c_str());
         if (year.Find('/') != wxNOT_FOUND){
-            //new versioning schema
+            //new versioning schema oeuSENC-BE_DE_NL-2022-2-1-base-desktop 
+            //version schema: year/edition/update version 2022/2-1
+            //year would contain 2022/2, version: 1
+            wxString convertedVersion=infoVersion;
+            convertedVersion.Replace("/","-");
+            convertedVersion+=wxString("-");
+            base=name;
+            //strip 2022-2-1- from the name
+            base.Replace(convertedVersion,"");
             wxString edition;
             year=year.BeforeLast('/',&edition);
             //simple approach: multiply the edition with 10000 - should give enough room for updates
-            iversion=iversion*10000 + atoi(edition.c_str());
+            iversion=iversion + 1000*atoi(edition.c_str());
+        }
+        else{
+            //old schema
+            //desktop-DE-2020-21
+            for (size_t i=0;i<name.size();i++){
+                if (name.GetChar(i) == '-') numDel++;
+            }
+            if (numDel >= 2){
+                wxString rest=name.BeforeLast('-',&version);
+                base=rest.BeforeLast('-',&year);
+            }
         }
         iyear=std::atoi(year.c_str());
         LOG_INFO(wxT("parsed %s to base=%s,year=%d,version=%d"),name,base,iyear,iversion);
@@ -664,7 +676,9 @@ bool ChartManager::OpenChart(ChartInfo* chart){
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory before chart open global=%dkb,our=%dkb"),globalKb,ourKb);
-    chart->Reopen(true,true);
+    if (!chart->Reopen(true,true)){
+        return false;
+    }
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory after chart open global=%dkb,our=%dkb"),globalKb,ourKb);
     openCharts.push_back(chart);

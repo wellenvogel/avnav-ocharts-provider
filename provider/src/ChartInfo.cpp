@@ -72,12 +72,13 @@ int ZoomLevelScales::FindZoomForScale(double scale) const{
     return MAX_ZOOM;
 }
 
-ChartInfo::ChartInfo(wxString className,wxString fileName) {
+ChartInfo::ChartInfo(wxString className,wxString fileName,bool isRaster) {
     this->classname=className;
     this->chart=NULL;
     this->filename=fileName;
     this->isValid=false;
     this->fullyInitialized=false;
+    this->isRaster=isRaster;
 }
 
 ChartInfo::~ChartInfo() {
@@ -109,6 +110,8 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
             }
             LOG_ERROR(_T("opening %s finally failed after retry"),filename);
         }
+        delete chart;
+        this->chart=NULL;
         return false;
     }
     this->fullyInitialized=fullInit;

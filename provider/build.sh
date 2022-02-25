@@ -44,7 +44,7 @@ if [ "$1" = "" ] ; then
 fi
 
 imagename="$2"
-container="$imagename"
+container=`echo "$imagename" | tr -d '/:'`
 builddir="$1"
 PDIR=`dirname $0`
 PDIR=`readlink -f "$PDIR"`
@@ -73,11 +73,12 @@ if [ $internal = 0 ] ; then
 	cflag=""
 	[ $doClean = 1 ] && cflag="-c"
 	set -x
-	user=`id -u -n`
-	docker run --rm --name "$container" -i $ttyopt  -v $PDIR:/src -u $user "$imagename" /bin/bash -c "cd /src && ./build.sh $bFlag $cflag -i $builddir"
+	user=`id -u`
+	group=`id -g`
+	docker run --rm --name "$container" -i $ttyopt  -v $PDIR:/src -u $user:$group "$imagename" /bin/bash -c "cd /src && ./build.sh $bFlag $cflag -i $builddir"
 	exit $?
 fi
-BUILD_DIR="$PDIR/$builddir"
+BUILD_DIR="$PDIR/build/$builddir"
 if [ $doClean  = 1 ] ; then
 	if [ -d "$BUILD_DIR" ] ; then
 		echo "cleaning $BUILD_DIR"
@@ -93,7 +94,7 @@ if [ ! -f Makefile ] ; then
     doClean=1
 fi
 if [ $doClean = 1 ] ; then
-	cmake -DCMAKE_BUILD_TYPE=$CMAKE_MODE ..
+	cmake -DCMAKE_BUILD_TYPE=$CMAKE_MODE ../..
 fi
 make
 

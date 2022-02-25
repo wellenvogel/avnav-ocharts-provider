@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"uri": "vscode-remote://dev-container+2f686f6d652f616e64726561732f70726f6a656374732f6f6368617274732d70726f7669646572/workspaces/ocharts-provider"
+		}
+	],
+	"remoteAuthority": "dev-container+2f686f6d652f616e64726561732f70726f6a656374732f6f6368617274732d70726f7669646572",
+	"settings": {
+		"cmake.configureSettings": {
+            "AVNAV_DEBUG_STANDALONE": "ON"
+        }
+	}
+}

@@ -48,11 +48,14 @@ class CacheFiller;
 class ExtensionEntry{
 public:
     wxString    classname;
-    ExtensionEntry(wxString &classname){
+    bool        isRaster=false;
+    ExtensionEntry(wxString &classname, bool isRaster=false){
         this->classname=classname;
+        this->isRaster=isRaster;
     }
-    ExtensionEntry(){
+    ExtensionEntry(bool isRaster=false){
         this->classname=wxEmptyString;
+        this->isRaster=isRaster;
     }
 };
 

@@ -112,6 +112,7 @@ public:
     int                 GetNumValidCharts(){return numValidCharts;}
     wxString            GetSetToken();
     long                GetSequence(){return settings->GetCurrentSequence();}
+    double              GetScaleForZoom(int zoom);
     
 
     

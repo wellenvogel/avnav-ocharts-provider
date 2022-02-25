@@ -100,6 +100,7 @@ bool SettingsManager::StoreBaseSettings(bool sendJson){
     base.bShowLightDescription=getIntVal(config,GetConfigDescription("bShowLightDescription"));
     base.bShowS57ImportantTextOnly=getIntVal(config,GetConfigDescription("bShowS57ImportantTextOnly"));
     base.showAnchorConditions=getIntVal(config,GetConfigDescription("showAnchorInfo"));
+    base.bUseScamin=getIntVal(config,GetConfigDescription("bUseSCAMIN"));
     base.configFile=config;
     base.settingsSequence=configSequence;
     LOG_INFO(wxT("SettingsManager: setting plugin base config"));

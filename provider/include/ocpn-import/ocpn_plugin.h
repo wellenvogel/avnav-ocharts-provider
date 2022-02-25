@@ -831,6 +831,14 @@ public:
     
 };
 
+class DECL_EXP PlugInChartBaseExtendedPlus2 : public PlugInChartBaseExtended {
+public:
+  PlugInChartBaseExtendedPlus2();
+  virtual ~PlugInChartBaseExtendedPlus2();
+
+  virtual ListOfPI_S57Obj *GetLightsObjRuleListVisibleAtLatLon(
+      float lat, float lon, PlugIn_ViewPort *VPoint);
+};
 
 
 
@@ -1221,5 +1229,9 @@ extern WXDLLIMPEXP_CORE const wxEventType wxEVT_DOWNLOAD_EVENT;
 /* Allow drawing of objects onto other OpenGL canvases */
 extern DECL_EXP void PlugInAISDrawGL( wxGLCanvas* glcanvas, const PlugIn_ViewPort& vp );
 extern DECL_EXP bool PlugInSetFontColor(const wxString TextElement, const wxColour color);
+
+extern "C" DECL_EXP void PositionBearingDistanceMercator_Plugin(double lat, double lon, double brg, double dist, double *dlat, double *dlon);
+extern "C" DECL_EXP void DistanceBearingMercator_Plugin(double lat0, double lon0, double lat1, double lon1, double *brg, double *dist);
+extern "C" DECL_EXP double DistGreatCircle_Plugin(double slat, double slon, double dlat, double dlon);
 
 #endif //_PLUGIN_H_

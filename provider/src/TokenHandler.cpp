@@ -37,7 +37,11 @@
 #include <vector>
 #include "MD5.h"
 #ifdef DEBUG
-    #include "publicKeyDebug.h"
+    #ifndef AVNAV_DEBUG_STANDALONE
+        #include "publicKeyDebug.h"
+    #else
+        #include "publicKey.h"
+    #endif
 #else
     #include "publicKey.h"
 #endif

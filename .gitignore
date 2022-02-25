@@ -15,3 +15,6 @@ docker/_config
 charts/
 **/*.log.*
 
+/provider/build/
+testbase/test/*
+testbase/testkey

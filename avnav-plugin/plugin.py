@@ -47,6 +47,7 @@ class Plugin:
   EXENAME="AvnavOchartsProvider"
   STARTSCRIPT="provider.sh"
   ENV_NAME="AVNAV_PROVIDER"
+  ENV_WORKDIR="AVNAV_PROVIDER_WORKDIR"
   CONFIG_FILE="avnav.conf"
   USE_OCPN_CHARTS='useOCPNCharts'
   OCPN_CONFIG='ocpnConfigFile'
@@ -364,7 +365,11 @@ class Plugin:
       PATH=self.config['exeDir']
     else:
       PATH=self.config['exeDir']+os.path.pathsep+PATH
-    env.update({self.ENV_NAME: envValue,'PATH':PATH})
+    env.update({
+      self.ENV_NAME: envValue,
+      'PATH':PATH,
+      self.ENV_WORKDIR: self.config['configdir']
+      })
     self.api.log("starting provider with command %s"%" ".join(cmdline))
     process=subprocess.Popen(cmdline,env=env,close_fds=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     if process is None:

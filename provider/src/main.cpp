@@ -42,6 +42,8 @@
 #include <wx/stdpaths.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <vector>
+#include <algorithm>
 //bytes per pixel
 #define BPI 3
 #include "pluginmanager.h"
@@ -71,6 +73,9 @@
 #include "UploadRequestHandler.h"
 #include "ColorTable.h"
 #include "S57AttributeDecoder.h"
+#include "TestHelper.h"
+
+
 
 extern "C" void * gluNewTess();
 #ifndef __WXMSW__
@@ -204,7 +209,7 @@ private:
     long maxLogLines=50000;
     long maxPrefillZoom=17;
     bool useChartCache=false;
-    ExtensionList extensions={{"*.OESENC",{}},{"*.OESU",{}},{"*.OERNC",{}}};
+    ExtensionList extensions={{"*.OESENC",{}},{"*.OESU",{}},{"*.OERNC",{true}}};
     ChartManager *chartManager;
     wxString privateDataDir=wxT("~/.opencpn/");
     wxString dataDir=privateDataDir;
@@ -434,10 +439,22 @@ private:
             return rt;
         }
         wxFileConfig cfg(wxEmptyString,wxEmptyString,configPath);
-        cfg.SetPath("PlugIns/ocharts/ChartinfoList");
+        //1st: get the chart dirs at OpenCPN level
+        std::vector<wxString> ocpnChartDirs;
+        cfg.SetPath("/ChartDirectories");
         long index;
         wxString entry;
         bool hasEntry=cfg.GetFirstEntry(entry,index);
+        while (hasEntry) {
+            wxString value=cfg.Read(entry,"");
+            if (value != wxEmptyString){
+                value=value.BeforeFirst('^',NULL);
+                ocpnChartDirs.push_back(value);
+            }
+            hasEntry=cfg.GetNextEntry(entry,index);
+        }
+        cfg.SetPath("/PlugIns/ocharts/ChartinfoList");
+        hasEntry=cfg.GetFirstEntry(entry,index);
         while (hasEntry) {
             wxString fileName = wxEmptyString;
             wxStringTokenizer tokenizer(entry, "!");
@@ -457,7 +474,12 @@ private:
                 if (!wxDirExists(fileName)) {
                     LOG_ERROR("chart dir %s does not exist, ignore", fileName);
                 } else {
-                    rt.Add(fileName);
+                    if (std::find(ocpnChartDirs.begin(),ocpnChartDirs.end(),fileName) == ocpnChartDirs.end()){
+                        LOG_INFO("found chart dir %s in ocharts but not on opencpn level",fileName);
+                    }
+                    else{
+                        rt.Add(fileName);
+                    }
                 }
 
             }
@@ -479,6 +501,7 @@ private:
                 exit(1);
             }
         }
+        initTest();
         StatusCollector statusCollector;
         LOG_INFO(_T("using plugindir %s"), args.Item(0));
         wxString pluginDir = getAbsolutePath(args.Item(0));
@@ -795,22 +818,5 @@ extern "C" int dummy(void){
 }
 
 //testing support
-#include <dlfcn.h>
 
-extern "C" {
-#define OCPN_PIPE "/tmp/OCPN_PIPEX"
-    int (*o_open)(const char *pathname, int flags,...);
-    int open(const char *pathname, int flags,...){
-       if(!o_open) o_open =(int(*)(const char *,int,...)) dlsym(RTLD_NEXT, "open"); 
-       va_list argp;
-       va_start(argp,flags);
-       const char * mp=getenv("AVNAV_TEST_PIPE");
-       if (mp != NULL && strcmp(pathname,OCPN_PIPE) == 0){
-           printf("open translate %s to %s\n",pathname,mp);
-           pathname=mp;
-       }
-       return o_open(pathname,flags,va_arg(argp,int));
-    }
-   
 
-}

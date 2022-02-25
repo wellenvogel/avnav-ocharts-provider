@@ -71,15 +71,28 @@ WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &no
             rt.push_back(winfo);            
         }
     }
-    if (goUp > 0 && (maxZoom+goUp) <= MAX_ZOOM ) {
+    int upperZoom=maxZoom+goUp;
+    if (upperZoom > MAX_ZOOM) upperZoom=MAX_ZOOM;
+    if (upperZoom > maxZoom ) {
         //tmp: if we did not find a tile at the wanted zoom - go x levels up
         bool ok = foundZooms[maxZoom];        
         if (!ok) {
-            WeightedChartList add = FindChartForTile(maxZoom + 1, maxZoom + goUp, northwest, southeast, 0);
+            WeightedChartList add = FindChartForTile(maxZoom + 1, upperZoom, northwest, southeast, 0);
             if (add.size() > 0) {
-                WeightedChartList::iterator it;
-                for (it = add.begin(); it != add.end(); it++) {
-                    rt.push_back(*it);
+                bool found=false;
+                for (int z=maxZoom+1;z<=upperZoom && ! found;z++){
+                    WeightedChartList::iterator it;
+                    bool foundInLevel=false;
+                    for (it = add.begin(); it != add.end(); it++) {
+                        if (it->info->GetZoom() == z){
+                            rt.push_back(*it);
+                            foundInLevel=true;
+                        }
+                    }
+                    if (foundInLevel){
+                        found=true;
+                        break;
+                    }
                 }
             }
         }
