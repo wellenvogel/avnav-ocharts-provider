@@ -92,7 +92,9 @@ class Plugin:
     {
       'name': 'memPercent',
       'description':'percent of existing mem to be used',
-      'default':''
+      'default':'',
+      'type':'NUMBER',
+      'rangeOrList':[2,95]
     }
   ]
   BASE_CONFIG=[
