@@ -234,13 +234,12 @@ class MyNpm extends NpmTask{
 project(":gui") {
     apply plugin: 'com.moowork.node'
     task viewerRelease(type: MyNpm) {
-        mustRunAfter(':cleanGui')
         subDir = "release"
         args = ["run", "release"]
         setExecOverrides({
             it.environment.put('AVNAV_VERSION', rootProject.avnavVersion)
         })
-        dependsOn npmInstall
+        dependsOn npmInstall,':cleanGui'
     }
     task viewerDebug(type: MyNpm) {
         mustRunAfter(':cleanGui')
@@ -492,7 +491,7 @@ def uploadDailyDir="daily-ochartsplugin"
 def uploadReleaseDir="release-ochartsplugin"
 
 task cleanGui(type: Delete){
-    delete "viewer/build"
+    delete "gui/build"
 }
 
 task uploadAccessDaily(type: UploadHtAccess){
