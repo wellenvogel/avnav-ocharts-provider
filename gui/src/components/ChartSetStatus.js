@@ -41,6 +41,9 @@ const ChartSetStatus=(props)=>{
     if (props.numCandidates > 0 && props.numValidCharts == 0 && props.errors > 0 && status == "READY"){
         status="ERROR";
     }
+    if ( status == 'READY' && props.reopenErrors > 0){
+        status="ERROR";
+    }
     return(
         <StatusItem title={
                 <span>
@@ -56,6 +59,7 @@ const ChartSetStatus=(props)=>{
             {props.showDetails &&
             <React.Fragment>
                 <StatusLine label="OpenErrors"  value={props.errors}/>
+                <StatusLine label="ReopenErrors"  value={props.reopenErrors}/>
                 <StatusLine label="MemoryCache"
                             value={cache.memoryEntries+"/"+cache.maxMemoryEntries+" ("+(Math.floor(cache.memoryBytes/1024))+"kb)"}/>
                 <StatusLine label="DiskCache"

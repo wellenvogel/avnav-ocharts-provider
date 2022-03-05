@@ -127,7 +127,8 @@ public:
 typedef enum {
     RENDER_OK,
     RENDER_FAIL,
-    RENDER_QUEUE        
+    RENDER_QUEUE,
+    RENDER_NOCHART        
 } RenderResult;    
 private:
     static Renderer *_instance;

@@ -143,7 +143,7 @@ public:
     
     bool                Stop();
     ChartSet *          GetChartSet(wxString key);
-    bool                OpenChart(ChartInfo *chart);
+    bool                OpenChart(ChartInfo *chart,bool allowRetry=false);
     virtual wxString    LocalJson();
     SettingsManager     *GetSettings();
     ManagerState        GetState();
