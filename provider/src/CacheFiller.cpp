@@ -350,6 +350,9 @@ void CacheFiller::RenderTile(TileInfo tile,bool processingRenderHint) {
             LOG_DEBUG(wxT("Cache filler - finished render tile %s"), tile.ToString());
         }
         if (rendered == Renderer::RENDER_FAIL) {
+            LOG_DEBUG(wxT("CacheFiller render error for %s"), tile.ToString());
+        }
+        if (rendered == Renderer::RENDER_NOCHART) {
             LOG_DEBUG(wxT("CacheFiller nothing to render for %s"), tile.ToString());
         }
     }

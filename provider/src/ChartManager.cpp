@@ -663,7 +663,7 @@ void ChartManager::CloseDisabled(){
     LOG_INFO(wxT("ChartManager::CloseDisabled finished and closed %d charts"),numClosed);
 }
 //must be called from main thread
-bool ChartManager::OpenChart(ChartInfo* chart){
+bool ChartManager::OpenChart(ChartInfo* chart, bool allowRetry){
     if (chart == NULL) return false;
     if (!chart->IsValid()) return false;
     if (chart->IsOpen()) return true;
@@ -676,7 +676,7 @@ bool ChartManager::OpenChart(ChartInfo* chart){
     int globalKb,ourKb;
     SystemHelper::GetMemInfo(&globalKb,&ourKb);
     LOG_DEBUG(wxT("Memory before chart open global=%dkb,our=%dkb"),globalKb,ourKb);
-    if (!chart->Reopen(true,true)){
+    if (!chart->Reopen(true,allowRetry)){
         return false;
     }
     SystemHelper::GetMemInfo(&globalKb,&ourKb);

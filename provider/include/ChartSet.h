@@ -85,6 +85,7 @@ public:
     bool                IsEnabled(){return active;}
     void                AddCandidate(ChartCandidate candidate);
     void                AddError(wxString fileName);
+    void                SetReopenStatus(wxString fileName,bool ok);
     void                StartParsing(){state=STATE_PARSING;}
     bool                IsParsing(){return state == STATE_PARSING;}
     void                SetZoomLevels();
@@ -113,6 +114,7 @@ public:
     wxString            GetSetToken();
     long                GetSequence(){return settings->GetCurrentSequence();}
     double              GetScaleForZoom(int zoom);
+    bool                ShouldRetryReopen(){return reopenErrors < 2;}
     
 
     
@@ -135,6 +137,8 @@ private:
     bool                canDelete;
     wxString            disabledBy;
     int                 openErrors; //consecutive openErrors, disable set when limit reached
+    int                 reopenErrors; //errors during reopen
+    int                 reopenOk; //consecutive reopen ok
     CandidateList       candidates;
     int                 numValidCharts;   
 };

@@ -194,11 +194,13 @@ void FeatureInfoMessage::Process(bool discard){
     for (int i=infos.size()-1;i>=0;i--){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=set->GetScaleForZoom(tile.zoom);//chart->GetNativeScale();
-        if (!manager->OpenChart(chart)){
+        if (!manager->OpenChart(chart,set->ShouldRetryReopen())){
+            set->SetReopenStatus(chart->GetFileName(),false);
             //ensure the chart to be open
             LOG_DEBUG(wxT("HandleFeatureRequest: unable to open chart %s:%s"),chart->GetFileName(),tile.ToString());
             continue;
         }
+        set->SetReopenStatus(chart->GetFileName(),true);
         ObjectList list=chart->FeatureInfo(vpoint,lat,lon,tolerance);
         result.insert(result.end(),list.begin(),list.end());
     }
@@ -278,12 +280,14 @@ void Renderer::DoRenderTile(RenderMessage *msg){
     for (size_t i=startIndex;i<infos.size();i++){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=set->GetScaleForZoom(tile.zoom);//chart->GetNativeScale();
-        if (!manager->OpenChart(chart)){ //ensure the chart to be open
+        if (!manager->OpenChart(chart,set->ShouldRetryReopen())){ //ensure the chart to be open
+            set->SetReopenStatus(chart->GetFileName(),false);
             LOG_ERROR("unable to open chart %s, cannot render %s",chart->GetFileName(),tile.ToString());
             msg->SetDone();
             return;
         } 
         else{
+            set->SetReopenStatus(chart->GetFileName(),true);
             chart->Render(renderDc,vpoint,region,tile.zoom);
         }
     }
@@ -372,13 +376,18 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
     LOG_DEBUG(_T("render tile %s - %s must render"),tile.ToString(),(forCache?"prefill":"request"));
     RenderMessage *msg=new RenderMessage(tile,set,
             this,manager->GetSettings()->GetCurrentSequence());
-    if (! PrepareRenderMessage(set,tile,msg))return RENDER_FAIL;
+    if (! PrepareRenderMessage(set,tile,msg))return RENDER_NOCHART;
     if (!queue->Enqueue(msg,timeout,forCache)){
         msg->Unref(); //our own
         return RENDER_QUEUE;
     }
     bool rt=msg->WaitForResult(8000);
-    if (! rt || ! msg->IsOk()) {
+    if (! rt) {
+        LOG_ERROR(_T("render timeout for %s"),tile.ToString());
+        msg->Unref();
+        return RENDER_FAIL;
+    }
+    if ( ! msg->IsOk()) {
         LOG_ERROR(_T("render failed for %s"),tile.ToString());
         msg->Unref();
         return RENDER_FAIL;

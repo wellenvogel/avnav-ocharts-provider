@@ -51,6 +51,8 @@ ChartSet::ChartSet(ChartSetInfo info, SettingsManager *manager,bool canDelete){
         this->settings=manager;
         this->scales = new ZoomLevelScales(settings->GetBaseScale());
         this->openErrors=0;
+        this->reopenErrors=0;
+        this->reopenOk=0;
         this->canDelete=canDelete;
         AddItem("info",&(this->info));
         AddItem("charts",charts);
@@ -149,6 +151,18 @@ void ChartSet::AddCandidate(ChartCandidate candidate){
 }
 void ChartSet::AddError(wxString fileName){
     openErrors++;
+}
+void ChartSet::SetReopenStatus(wxString fileName,bool ok){
+    if (! ok){
+        reopenOk=0;
+        reopenErrors++;
+    }
+    else{
+        reopenOk++;
+        if (reopenOk > 5){
+            reopenErrors=0;
+        }
+    }
 }
 
 bool ChartSet::SetEnabled(bool enabled,wxString disabledBy){
@@ -264,6 +278,7 @@ wxString ChartSet::LocalJson(){
             JSON_IV(active,%s) ",\n"
             JSON_IV(ready,%s) ",\n"
             JSON_IV(errors,%d) ",\n"
+            JSON_IV(reopenErrors,%d) ",\n"
             JSON_SV(disabledBy,%s) ",\n"
             JSON_IV(canDelete,%s) ",\n"
             JSON_IV(numValidCharts,%d) "\n",
@@ -272,6 +287,7 @@ wxString ChartSet::LocalJson(){
             PF_BOOL(active),
             PF_BOOL(IsReady()),
             openErrors,
+            reopenErrors,
             disabledBy,
             PF_BOOL(canDelete),
             numValidCharts
