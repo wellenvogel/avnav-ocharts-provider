@@ -488,7 +488,10 @@ class Plugin:
     for bp in backgroundList:
       pid=bp[0]
       self.api.log("killing background process %d",pid)
-      os.kill(pid,signal.SIGKILL)
+      try:
+        os.kill(pid,signal.SIGKILL)
+      except:
+        self.api.error("unable to kill background process %d:%s",pid,traceback.format_exc())  
     try:
       provider=psutil.Process(self.providerPid)
       provider.wait(0)
