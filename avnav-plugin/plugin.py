@@ -60,7 +60,7 @@ class Plugin:
     },
     {
       'name':'display',
-      'description': 'The X display number to be used (100...1023). Change only if you have conflicts.',
+      'description': 'The X display number to be used (100...1023). Change only if you have conflicts. You should reboot your system after changing.',
       'default': '1000',
       'type': 'NUMBER',
       'rangeOrList': [100,1023]
