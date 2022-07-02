@@ -600,7 +600,7 @@ class Plugin:
           self.api.log("there are provider processes running from other users: %s",",".join(diffstr))
         if len(own) > 0:
           #TODO: handle more then one process
-          self.api.log("we already see a provider running with pid %d, trying this one"%filtered[0][0])
+          self.api.log("we already see a provider running with pid %d, trying this one"%own[0][0])
           alreadyRunning=True
           self.providerPid=own[0][0]
       if not alreadyRunning:
