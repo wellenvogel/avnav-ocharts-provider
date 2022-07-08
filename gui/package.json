@@ -19,7 +19,7 @@
     "babel-preset-latest": "^6.24.1",
     "babel-preset-react": "^6.24.1",
     "less-loader": "^4.0.5",
-    "moment": "^2.19.2",
+    "moment": "^2.29.4",
     "react": "^16.8.1",
     "react-dom": "^16.8.1"
   },
