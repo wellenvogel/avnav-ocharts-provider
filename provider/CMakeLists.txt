@@ -442,7 +442,6 @@ IF(DEFINED _wx_selected_config)
     MESSAGE (STATUS "Using GLESv2 for Android")
     ADD_DEFINITIONS(-DUSE_ANDROID_GLES2)
     ADD_DEFINITIONS(-DUSE_GLSL)
-    INCLUDE_DIRECTORIES( ${CMAKE_SOURCE_DIR}/libs/glshim/include/GLES )
 
   ENDIF(_wx_selected_config MATCHES "androideabi-qt")
 ENDIF(DEFINED _wx_selected_config)
@@ -570,54 +569,12 @@ if (NOT QT_ANDROID)
   message(STATUS " Revised wxWidgets Libraries: ${wxWidgets_LIBRARIES}")
 endif (NOT QT_ANDROID)
 
-IF(QT_ANDROID)
-  SET( wxWidgets_LIBRARIES
-
-        # Link order is critical to avoid circular dependencies
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_qtu_html-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_baseu_xml-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_qtu_qa-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_qtu_adv-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_qtu_core-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_baseu-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_qtu_aui-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwxexpat-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwxregexu-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwxjpeg-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwxpng-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_qtu_gl-3.1-arm-linux-androideabi.a
-    ${wxQt_Base}/${wxQt_Build}/lib/libwx_baseu_net-3.1-arm-linux-androideabi.a
-
-    ${Qt_Base}/${Qt_Build}/lib/libQt5Core.so
-    ${Qt_Base}/${Qt_Build}/lib/libQt5OpenGL.so
-    ${Qt_Base}/${Qt_Build}/lib/libQt5Widgets.so
-    ${Qt_Base}/${Qt_Build}/lib/libQt5Gui.so
-    ${Qt_Base}/${Qt_Build}/lib/libQt5AndroidExtras.so
-
-    )
-ENDIF(QT_ANDROID)
 
 message(STATUS "")
 message(STATUS "*** Staging to build ${PACKAGE_NAME}  ***")
 message(STATUS "*** Build type: ${CMAKE_BUILD_TYPE}")
 #message(STATUS "*** Will install to ${CMAKE_INSTALL_PREFIX}  ***")
 
-IF(QT_ANDROID)
-  INCLUDE_DIRECTORIES("${Qt_Base}/${Qt_Build}/include/QtCore")
-  INCLUDE_DIRECTORIES("${Qt_Base}/${Qt_Build}/include")
-  INCLUDE_DIRECTORIES("${Qt_Base}/${Qt_Build}/include/QtWidgets")
-  INCLUDE_DIRECTORIES("${Qt_Base}/${Qt_Build}/include/QtGui")
-  INCLUDE_DIRECTORIES("${Qt_Base}/${Qt_Build}/include/QtOpenGL")
-  INCLUDE_DIRECTORIES("${Qt_Base}/${Qt_Build}/include/QtTest")
-
-  INCLUDE_DIRECTORIES(
-      "${wxQt_Base}/${wxQt_Build}/lib/wx/include/arm-linux-androideabi-qt-unicode-static-3.1")
-  INCLUDE_DIRECTORIES("${wxQt_Base}/include")
-  include_directories("${CMAKE_SOURCE_DIR}/include")
-
-
-  add_definitions(-DQT_WIDGETS_LIB)
-endif (QT_ANDROID)
 
 
 set(
@@ -729,15 +686,6 @@ if (APPLE)
 endif (APPLE)
 
 
-IF(QT_ANDROID)
-  SET(HDRS ${HDRS} include/androidUTIL.h)
-  SET(SRCS ${SRCS} src/androidUTIL.cpp)
-ENDIF(QT_ANDROID)
-
-IF(USE_GLES2)
-    SET(HDRS ${HDRS} include/shaders.h)
-    SET(SRCS ${SRCS} src/shaders.cpp)
-ENDIF(USE_GLES2)
 
 if (APPLE)
   add_executable(${PACKAGE_NAME} MACOSX_BUNDLE ${HDRS} ${SRCS})
@@ -766,9 +714,21 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/requestHandler
 )
 
-find_package(OpenSSL REQUIRED)
-INCLUDE_DIRECTORIES(OPENSSL_INCLUDE_DIR)
-target_link_libraries(${PACKAGE_NAME} PRIVATE ${OPENSSL_LIBRARIES})
+if (QT_ANDROID)
+  add_subdirectory("libs/opencpn-glu")
+  target_link_libraries(${PACKAGE_NAME} PRIVATE _glu_if)
+endif(QT_ANDROID)
+
+
+if (NOT QT_ANDROID)
+  find_package(OpenSSL REQUIRED)
+  INCLUDE_DIRECTORIES(OPENSSL_INCLUDE_DIR)
+  target_link_libraries(${PACKAGE_NAME} PRIVATE ${OPENSSL_LIBRARIES})
+ENDIF(NOT QT_ANDROID)
+
+if (QT_ANDROID)
+  include(libs/AndroidLibs.cmake)
+ENDIF(QT_ANDROID)    
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     if (NOT AVNAV_DEBUG_STANDALONE)
@@ -916,8 +876,8 @@ if (AVNAV_USE_CURL)
       install(FILES ${CURL_LIBRARY_DLL} DESTINATION ".")
     endif (WIN32 AND AVNAV_EXTERNAL_CURL)
   else (NOT QT_ANDROID)
-    target_include_directories( ${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libcurl/include)
-    target_link_libraries(${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libcurl/libcurl.a)
+    #target_include_directories( ${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libcurl/include)
+    #target_link_libraries(${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libcurl/libcurl.a)
   endif (NOT QT_ANDROID)
 endif (AVNAV_USE_CURL)
 
@@ -941,13 +901,12 @@ if (QT_ANDROID)
   set(OPENGL_FOUND "YES")
 
   # SET(wxWidgets_FIND_COMPONENTS ${wxWidgets_FIND_COMPONENTS} gl )
-  add_subdirectory(libs/glshim)
 endif (QT_ANDROID)
 
 
 if (QT_ANDROID)
-  target_include_directories(${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libarchive/include)
-  target_link_libraries(${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libarchive/libarchive.a)
+  #target_include_directories(${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libarchive/include)
+  #target_link_libraries(${PACKAGE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/buildandroid/libarchive/libarchive.a)
 else (QT_ANDROID)
   find_package(LibArchive REQUIRED)
   target_include_directories(${PACKAGE_NAME} PRIVATE ${LibArchive_INCLUDE_DIRS})

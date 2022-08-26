@@ -28,8 +28,8 @@
 #include <wx/wfstream.h>
 #include <wx/datetime.h>
 #include <wx/thread.h>
-#include <wx-3.0/wx/filename.h>
-#include <wx-3.0/wx/dir.h>
+#include <wx/filename.h>
+#include <wx/dir.h>
 
 Logger * Logger::_instance = NULL;
 
