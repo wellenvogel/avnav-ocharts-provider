@@ -32,10 +32,9 @@
 #include <deque>
 #include "Logger.h"
 #include "SimpleThread.h"
-using namespace std;
 
 template <class T> class RequestQueue{
-    deque<T*>     queue;
+    std::deque<T*>     queue;
     std::mutex    readLock;
     Condition *   readCondition=NULL;
     std::mutex    writeLock;
