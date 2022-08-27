@@ -153,7 +153,7 @@ public:
         OK,    //normal render
         FULL   //rendered complete tile- no need to render lower tiles (only for raster charts)
     } RenderResult;
-    ChartInfo(wxString className,wxString fileName, bool isRaster=False);
+    ChartInfo(wxString className,wxString fileName, bool isRaster=false);
     ~ChartInfo();
     int         Init(bool allowRetry=false);
     wxString    GetXmlBounds();

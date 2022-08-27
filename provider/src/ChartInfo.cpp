@@ -30,7 +30,7 @@
 #include "georef.h"
 #include <wx/dcmemory.h>
 #include <wx/time.h>
-#include <wx-3.0/wx/tokenzr.h>
+#include <wx/tokenzr.h>
 #include "Logger.h"
 #include "StringHelper.h"
 #include "pi_s52s57.h"

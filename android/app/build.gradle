@@ -16,7 +16,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags ""
-                arguments "-D_wx_selected_config=androideabi-qt"
+                arguments "-D_wx_selected_config=androideabi-qt","-DANDROID_STL=c++_shared"
             }
         }
     }
@@ -37,6 +37,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    buildFeatures{
+        prefab true
+    }
 }
 
 dependencies {
@@ -47,4 +50,5 @@ dependencies {
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+    implementation 'com.android.ndk.thirdparty:openssl:1.1.1g-alpha-1'
 }

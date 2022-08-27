@@ -29,12 +29,7 @@
   #include <windows.h>
 #endif
 
-#ifdef __WXMSW__
-#include "GL/gl.h"            // local copy for Windows
-#else
-#include <GL/gl.h>
-#endif
-
+#include "dychart.h"
 #include <wx/dc.h>
 #include <wx/dcscreen.h>
 #include <wx/dcmemory.h>
@@ -49,31 +44,19 @@
 static double g_GLMinLineWidth=1;
 
 /* pass the dc to the constructor, or NULL to use opengl */
-ocpnDC::ocpnDC(wxGLCanvas &canvas) : glcanvas(&canvas), dc(NULL), m_pen(wxNullPen), m_brush(wxNullBrush), pgc(NULL)
+ocpnDC::ocpnDC(wxGLCanvas &canvas) : glcanvas(&canvas), dc(NULL), m_pen(wxNullPen), m_brush(wxNullBrush)
 {
-     glGenTextures(1, &tex);
+     //glGenTextures(1, &tex);
      m_textforegroundcolour = wxColour(0,0,0);
 }
 
 ocpnDC::ocpnDC(wxDC &pdc) : glcanvas(NULL), dc(&pdc), m_pen(wxNullPen), m_brush(wxNullBrush)
 {
-     
-#if wxUSE_GRAPHICS_CONTEXT
-	 pgc = NULL;
-     wxMemoryDC *pmdc = wxDynamicCast(dc, wxMemoryDC);
-     if(pmdc)
-          pgc = wxGraphicsContext::Create(*pmdc);
-     else
-     {
-          wxClientDC *pcdc = wxDynamicCast(dc, wxClientDC);
-          if(pcdc)
-               pgc = wxGraphicsContext::Create(*pcdc);
-     }
-#endif
+
      m_textforegroundcolour = wxColour(0,0,0);
 }
 
-ocpnDC::ocpnDC(): glcanvas(NULL), dc(NULL), m_pen(wxNullPen), m_brush(wxNullBrush), pgc(NULL)
+ocpnDC::ocpnDC(): glcanvas(NULL), dc(NULL), m_pen(wxNullPen), m_brush(wxNullBrush)
 {
 }
 
@@ -84,7 +67,8 @@ ocpnDC::~ocpnDC()
           delete pgc;
 #endif
      if(glcanvas)
-          glDeleteTextures(1, &tex);
+          //glDeleteTextures(1, &tex);
+     ;     
 }
 
 void ocpnDC::SetPen(const wxPen &pen)
@@ -581,7 +565,7 @@ void ocpnDC::DrawEllipse(wxCoord x, wxCoord y, wxCoord width, wxCoord height)
      }
 }
 
-void ocpnDC::DrawPolygon(int n, wxPoint points[], wxCoord xoffset, wxCoord yoffset)
+void ocpnDC::DrawPolygon(int n, wxPoint points[], wxCoord xoffset, wxCoord yoffset,float scale, float angle)
 {
       if(dc)
             dc->DrawPolygon(n, points, xoffset, yoffset);
@@ -616,7 +600,7 @@ void ocpnDC::DrawPolygon(int n, wxPoint points[], wxCoord xoffset, wxCoord yoffs
       }
 }
 
-void ocpnDC::StrokePolygon(int n, wxPoint points[], wxCoord xoffset, wxCoord yoffset)
+void ocpnDC::StrokePolygon(int n, wxPoint points[], wxCoord xoffset, wxCoord yoffset,float scale)
 {
 #if wxUSE_GRAPHICS_CONTEXT
      if(pgc) {
@@ -755,7 +739,7 @@ void ocpnDC::DrawText(const wxString &text, wxCoord x, wxCoord y)
 }
 
 void ocpnDC::GetTextExtent(const wxString &string, wxCoord *w, wxCoord *h, wxCoord *descent,
-                           wxCoord *externalLeading, wxFont *font) const
+                           wxCoord *externalLeading, wxFont *font)
 {
      if(dc)
           dc->GetTextExtent(string, w, h, descent, externalLeading, font);
