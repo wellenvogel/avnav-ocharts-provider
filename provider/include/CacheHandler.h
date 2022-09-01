@@ -64,7 +64,7 @@ public:
     
     CacheEntry(MD5Name name,wxMemoryOutputStream *data,wxFileOffset offset):RefCount(){
         this->data=data;
-        offset=offset;
+        this->offset=offset;
         mode=DISK_AND_MEMORY;
         insertTime=0;
         this->name=name;
