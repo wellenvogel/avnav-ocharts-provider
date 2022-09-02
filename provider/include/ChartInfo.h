@@ -146,6 +146,7 @@ private:
     bool            isValid;
     bool            fullyInitialized;
     bool            isRaster=false;
+    bool            isOverlay=false;
          
 public:
     typedef enum{
@@ -183,6 +184,7 @@ public:
     void        FromCache(int nativeScale,ExtentPI extent);
     bool        IsValid(){return isValid;}
     bool        IsRaster();
+    bool        IsOverlay();
 
 private:
     long    lastRender;

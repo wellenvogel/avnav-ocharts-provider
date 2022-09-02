@@ -30,7 +30,8 @@
 #include "georef.h"
 #include <wx/dcmemory.h>
 #include <wx/time.h>
-#include <wx-3.0/wx/tokenzr.h>
+#include <wx/filename.h>
+#include <wx/tokenzr.h>
 #include "Logger.h"
 #include "StringHelper.h"
 #include "pi_s52s57.h"
@@ -79,6 +80,12 @@ ChartInfo::ChartInfo(wxString className,wxString fileName,bool isRaster) {
     this->isValid=false;
     this->fullyInitialized=false;
     this->isRaster=isRaster;
+    wxFileName fn(filename);
+    //      Get the "Usage" character
+    wxString cname = fn.GetName();
+    if (cname.Length() >= 3){
+        isOverlay=((cname[2] == 'L') || (cname[2] == 'A'));
+    }
 }
 
 ChartInfo::~ChartInfo() {
@@ -124,6 +131,9 @@ bool ChartInfo::IsOpen(){
 
 bool ChartInfo::IsRaster(){
     return (classname == wxString("Chart_oeuRNC"));
+}
+bool ChartInfo::IsOverlay() {
+  return isOverlay && ! isRaster;
 }
 
 long ChartInfo::GetLastRender(){
@@ -173,7 +183,7 @@ int ChartInfo::FillInfo(const ZoomLevelScales *scales) {
     ymin=TileHelper::lat2tiley(extent.NLAT,zoom);
     xmax=TileHelper::long2tilex(extent.ELON,zoom);
     ymax=TileHelper::lat2tiley(extent.SLAT,zoom);
-    LOG_INFO("ChartInfo::FillInfo %s: zoom=%d, %s",filename,zoom, GetXmlBounds());
+    LOG_INFO("ChartInfo::FillInfo %s: scale=%d, zoom=%d, %s",filename,nativeScale,zoom, GetXmlBounds());
     return PI_INIT_OK;
 }
 

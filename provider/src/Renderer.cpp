@@ -298,11 +298,15 @@ void Renderer::DoRenderTile(RenderMessage *msg){
 /**
  * sort the weighted list
  * better ones (higher zoom, lower scale) at the end
+ * put overlays always after all other charts
  * @param first
  * @param second
  * @return 
  */
 bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
+    if (first.info->IsOverlay() != second.info->IsOverlay() ){
+        return second.info->IsOverlay(); //if the second one is an overlay it is "bigger"
+    }
     if (first.info->GetZoom() == second.info->GetZoom()){
         if (first.scale > second.scale) return true;
         return false;
