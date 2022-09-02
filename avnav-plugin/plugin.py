@@ -59,6 +59,13 @@ class Plugin:
       'type': 'NUMBER'
     },
     {
+      'name':'display',
+      'description': 'The X display number to be used (100...1023). Change only if you have conflicts. You should reboot your system after changing.',
+      'default': '1000',
+      'type': 'NUMBER',
+      'rangeOrList': [100,1023]
+    },
+    {
       'name':'threads',
       'description':'number of provider threads',
       'default':5,
@@ -327,6 +334,7 @@ class Plugin:
       if not os.path.isdir(chart):
         raise Exception("chart dir %s not found"%chart)
     cmdline = ["/bin/sh",exe,
+               '-a',str(self.config['display']),
                '-t',str(self.config['threads']),
                '-d',str(self.config['debug']),
                '-s',str(self.config['scale']),
@@ -592,7 +600,7 @@ class Plugin:
           self.api.log("there are provider processes running from other users: %s",",".join(diffstr))
         if len(own) > 0:
           #TODO: handle more then one process
-          self.api.log("we already see a provider running with pid %d, trying this one"%filtered[0][0])
+          self.api.log("we already see a provider running with pid %d, trying this one"%own[0][0])
           alreadyRunning=True
           self.providerPid=own[0][0]
       if not alreadyRunning:
