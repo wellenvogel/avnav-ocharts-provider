@@ -50,7 +50,7 @@ typedef struct{
     MD5Name         name;
 } RecordHeader;
 
-#define CURRENT_VERSION 2
+#define CURRENT_VERSION 3
 #define FILE_MAGIC "AVOCACHE"
 #define RECORDMAGIC "AVOR"
 
