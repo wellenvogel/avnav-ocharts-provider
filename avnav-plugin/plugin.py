@@ -104,6 +104,13 @@ class Plugin:
       'rangeOrList':[2,95]
     },
     {
+      'name': 'renderTimeout',
+      'description':'timeout in ms to wait for rendering a tile',
+      'default':'8000',
+      'type':'NUMBER',
+      'rangeOrList':[1000,90000]
+    },
+    {
         'name': USE_OCPN_CHARTS,
         'description': 'Use the charts from OpenCPN when installed on the same system.\n To reread the plugin must be restarte from it\'s GUI',
         'type':'BOOLEAN',
@@ -344,6 +351,7 @@ class Plugin:
                "-f",str(self.config['diskCacheSize']),
                "-r",str(self.config['prefillZoom']),
                "-e", self.config['exeDir'],
+               "-w", self.config['renderTimeout'],
                "-n"]
     if self.config['memPercent'] != '':
       cmdline= cmdline + ["-x",str(self.config['memPercent'])]
@@ -477,8 +485,9 @@ class Plugin:
     self.changeSequence+=1
 
   def stop(self):
-    self.changeSequence+=1
+    self.api.log("stopping ocharts")
     self.stopSequence+=1
+    self.changeSequence+=1
 
   def run(self):
     sequence=self.stopSequence
