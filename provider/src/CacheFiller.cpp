@@ -333,12 +333,12 @@ void CacheFiller::RenderTile(TileInfo tile,bool processingRenderHint) {
     LOG_DEBUG(wxT("Cache filler - render tile %s"), tile.ToString());
     while (!shouldStop() && rendered == Renderer::RENDER_QUEUE) {
         if ((entry = handler->FindEntry(tile.GetCacheKey(), false)) != NULL) {
-            LOG_DEBUG(wxT("CacheFiller %s cache hit for %s"), tile.chartSetKey, tile.GetCacheKey().ToString());
+            LOG_DEBUG(wxT("CacheFiller %s cache hit for %s"), tile.chartSetKey, tile.ToString(true));
             entry->Unref();
             break;
         }
         if (handler->HasDiskEntry(tile.GetCacheKey())) {
-            LOG_DEBUG(wxT("CacheFiller %s disk cache hit for %s"), tile.chartSetKey, tile.GetCacheKey().ToString());
+            LOG_DEBUG(wxT("CacheFiller %s disk cache hit for %s"), tile.chartSetKey, tile.ToString(true));
             break;
         }
 
@@ -347,13 +347,13 @@ void CacheFiller::RenderTile(TileInfo tile,bool processingRenderHint) {
                 tile, entry, 100, true);
         if (rendered == Renderer::RENDER_OK) {
             entry->Unref();
-            LOG_DEBUG(wxT("Cache filler - finished render tile %s"), tile.ToString());
+            LOG_DEBUG(wxT("Cache filler - finished render tile %s"), tile.ToString(true));
         }
         if (rendered == Renderer::RENDER_FAIL) {
-            LOG_DEBUG(wxT("CacheFiller render error for %s"), tile.ToString());
+            LOG_DEBUG(wxT("CacheFiller render error for %s"), tile.ToString(true));
         }
         if (rendered == Renderer::RENDER_NOCHART) {
-            LOG_DEBUG(wxT("CacheFiller nothing to render for %s"), tile.ToString());
+            LOG_DEBUG(wxT("CacheFiller nothing to render for %s"), tile.ToString(true));
         }
     }
 }

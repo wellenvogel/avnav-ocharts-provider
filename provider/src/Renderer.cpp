@@ -213,7 +213,7 @@ ObjectList* FeatureInfoMessage::GetResult(){
 }
 
 //must be called in main thread
-Renderer::Renderer(ChartManager *manager,MainQueue *queue){
+Renderer::Renderer(ChartManager *manager,MainQueue *queue, long timeout){
     this->manager=manager;
     this->queue=queue;
     stop=false;
@@ -224,13 +224,14 @@ Renderer::Renderer(ChartManager *manager,MainQueue *queue){
     initialDc.SetBackground(wxBrush(backColor));
     initialDc.Clear();
     initialDc.SelectObject(wxNullBitmap);
+    renderTimeout=timeout;
 }
 
 Renderer *Renderer::_instance=NULL;
 
-void Renderer::CreateInstance(ChartManager *manager,MainQueue *queue){
+void Renderer::CreateInstance(ChartManager *manager,MainQueue *queue, long timeout){
     if (_instance != NULL) return;
-    Renderer * ni=new Renderer(manager,queue);
+    Renderer * ni=new Renderer(manager,queue,timeout);
     _instance=ni;
 }
 
@@ -276,7 +277,7 @@ void Renderer::DoRenderTile(RenderMessage *msg){
     PlugIn_ViewPort vpoint=msg->GetViewPort();
     WeightedChartList infos=msg->GetChartList();
     wxRegion region(0,0,TILE_SIZE,TILE_SIZE);
-    LOG_DEBUG(_T("merge match for %d/%d/%d with %d entries"),tile.zoom,tile.x,tile.y,(int)infos.size());
+    LOG_DEBUG(_T("do render for %s with %d entries"),tile.ToString(),(int)infos.size());
     for (size_t i=startIndex;i<infos.size();i++){
         ChartInfo *chart=infos[i].info;
         vpoint.chart_scale=set->GetScaleForZoom(tile.zoom);//chart->GetNativeScale();
@@ -354,11 +355,12 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
                 manager->GetSettings()->GetUnderZoom());
     long timeFind=Logger::MicroSeconds100();
     if (infos.size() < 1) {
+        LOG_DEBUG(wxT("prepare render %s no charts found"),tile.ToString(true));
         msg->Unref();
         return false; //no matching chart found
     }
     std::sort(infos.begin(),infos.end(),scaleSort);
-    LOG_DEBUG(wxT("render with %ld charts"),infos.size());
+    LOG_DEBUG(wxT("prepare render %s with %ld charts"),tile.ToString(true),infos.size());
     msg->SetCharts(infos);
     msg->SetViewPort(vpoint);
     msg->SetManager(manager);
@@ -382,17 +384,18 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
             this,manager->GetSettings()->GetCurrentSequence());
     if (! PrepareRenderMessage(set,tile,msg))return RENDER_NOCHART;
     if (!queue->Enqueue(msg,timeout,forCache)){
+        LOG_DEBUG(wxT("queue full for %s"),tile.ToString(true));
         msg->Unref(); //our own
         return RENDER_QUEUE;
     }
-    bool rt=msg->WaitForResult(8000);
+    bool rt=msg->WaitForResult(renderTimeout);
     if (! rt) {
-        LOG_ERROR(_T("render timeout for %s"),tile.ToString());
+        LOG_ERROR(_T("render timeout for %s"),tile.ToString(true));
         msg->Unref();
         return RENDER_FAIL;
     }
     if ( ! msg->IsOk()) {
-        LOG_ERROR(_T("render failed for %s"),tile.ToString());
+        LOG_ERROR(_T("render failed for %s"),tile.ToString(true));
         msg->Unref();
         return RENDER_FAIL;
     }
@@ -409,7 +412,7 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
         out->prefill=false; //was a real render request - but could have been late hit
     }
     LOG_DEBUG(_T("render %s: %s"),
-            tile.ToString(),msg->GetTimings()
+            tile.ToString(true),msg->GetTimings()
             );
     
     msg->Unref();
