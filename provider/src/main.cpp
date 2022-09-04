@@ -124,6 +124,7 @@ static const wxCmdLineEntryDesc g_cmdLineDesc [] = {
     {wxCMD_LINE_OPTION,"u", "uploadDir","directory for chart upload (default: configDir/charts)", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
     {wxCMD_LINE_SWITCH,"n", "noChartScan","use chart cache info if available (fast start)"},
     {wxCMD_LINE_OPTION,"o", "openCpnConfig","parse this OpenCPN config for chart sets",wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+    {wxCMD_LINE_OPTION,"w","waitTime", "render timeout in ms (default: 8000)", wxCMD_LINE_VAL_NUMBER, wxCMD_LINE_PARAM_OPTIONAL},
     
     {wxCMD_LINE_PARAM, NULL, NULL, "", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_MULTIPLE},
     { wxCMD_LINE_NONE}
@@ -198,6 +199,7 @@ class AvNavProvider : public wxApp {
 private:
     wxArrayString myArgs;
     long debugLevel=LOG_LEVEL_INFO;
+    long renderTimeout=8000;
     double scaleLevel=1;
     wxString logFile;
     wxString uploadDir=wxEmptyString;
@@ -252,6 +254,7 @@ public:
         parser.Found("r",&maxPrefillZoom);
         parser.Found("u",&uploadDir);
         parser.Found("o",&openCPNConfig);
+        parser.Found("w",&renderTimeout);
         useChartCache=parser.Found("n");
         if (scaleLevel < 0.1 || scaleLevel > 10){
             LOG_ERRORC(_T("invalid scale level %lf"),scaleLevel);
@@ -628,7 +631,7 @@ private:
         //start up web server
         TokenHandler *tokenHandler=new TokenHandler("all");
         MainQueue mainQueue;
-        Renderer::CreateInstance(chartManager,&mainQueue);
+        Renderer::CreateInstance(chartManager,&mainQueue,renderTimeout);
         LOG_INFO(_T("starting HTTP server on port %d"), port);
         HTTPServer webServer(port,maxThreads);
         webServer.AddHandler(new ListRequestHandler(chartManager));

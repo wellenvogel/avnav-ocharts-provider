@@ -134,7 +134,7 @@ private:
     static Renderer *_instance;
     ChartManager    *manager;
     bool            stop;
-    Renderer(ChartManager *manager,MainQueue *queue);
+    Renderer(ChartManager *manager,MainQueue *queue, long timeout);
     /**
      * prepare a message for rendering
      * @param set
@@ -147,13 +147,13 @@ private:
                         ,RenderMessageBase* msg, bool allLower=false);
     wxBitmap        *initialBitmap;
     wxColor         backColor;
-    
+    long            renderTimeout=8000; //ms    
     
 public:
     MainQueue           *queue;
     ~Renderer();
     static Renderer*    Instance();
-    static void         CreateInstance(ChartManager *manager,MainQueue *queue);
+    static void         CreateInstance(ChartManager *manager,MainQueue *queue, long timeout=8000);
     
     RenderResult        renderTile(ChartSet *set,TileInfo &tile, /*out*/CacheEntry *&result,long timeout=0,bool forCache=false);
     /**

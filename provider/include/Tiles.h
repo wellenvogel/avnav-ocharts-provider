@@ -90,8 +90,13 @@ public:
         if (other.y != y) return false;
         return true;
     }
-    wxString ToString(){
-        return wxString::Format(_T("tile %s,z=%d,x=%d,y=%d"),chartSetKey,zoom,x,y);
+    wxString ToString(bool omitName=false){
+        if (! omitName){
+            return wxString::Format(_T("tile %s,z=%d,x=%d,y=%d"),chartSetKey,zoom,x,y);
+        }
+        else{
+            return wxString::Format(_T("tile z=%d,x=%d,y=%d"),zoom,x,y);
+        }
     }
     MD5Name GetCacheKey(){
         return cacheKey;
