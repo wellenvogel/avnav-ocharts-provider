@@ -411,8 +411,9 @@ Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEn
     if (! forCache){
         out->prefill=false; //was a real render request - but could have been late hit
     }
-    LOG_DEBUG(_T("render %s: %s"),
-            tile.ToString(true),msg->GetTimings()
+    LOG_DEBUG(_T("render %s: %s, sz=%lld"),
+            tile.ToString(true),msg->GetTimings(),
+            (long long)out->GetLength()
             );
     
     msg->Unref();
