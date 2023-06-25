@@ -210,7 +210,11 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
             LOG_DEBUG(wxT("memory after chart global=%dkb,our=%dkb"), globalKb, ourKb);
             return true;
         }
-        LOG_ERROR(_T("loading chart failed wit code %d"), rt); 
+        LOG_ERROR(_T("loading chart failed with code %d"), rt); 
+        if (rt == PI_INIT_FAIL_NOERROR){
+            set->AddChart(info);
+            return false;
+        }
     }
     else{
         LOG_ERROR(_T("loading chart failed due to too many errors in set"));         

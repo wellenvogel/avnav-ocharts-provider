@@ -94,6 +94,9 @@ ChartInfo::~ChartInfo() {
 }
 
 bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
+    return DoReopen(fullInit,allowRetry) == PI_INIT_OK;
+}
+int ChartInfo::DoReopen(bool fullInit,bool allowRetry){
     if (this->chart != NULL) return true;
     LOG_INFO(_T("opening %s"), filename);
     wxObject *chartObject = ::wxCreateDynamicObject(classname);
@@ -103,7 +106,7 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
     int rt = this->chart->Init(filename,fullInit?PI_FULL_INIT:PI_HEADER_ONLY);
     if (rt != PI_INIT_OK) {
         LOG_ERROR(_T("opening %s failed with error %d"), filename, rt);
-        if (allowRetry){
+        if (allowRetry && rt != PI_INIT_FAIL_NOERROR){
             //kill all oeserverd children
             //we do this be sending a signal to our process group that we ignore...
             LOG_ERROR(_T("killing all children"));
@@ -113,16 +116,16 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
             if (rt == PI_INIT_OK){
                 this->fullyInitialized=fullInit;
                 LOG_INFO(_T("opening succeeded on retry for %s"),filename);
-                return true;
+                return rt;
             }
             LOG_ERROR(_T("opening %s finally failed after retry"),filename);
         }
         delete chart;
         this->chart=NULL;
-        return false;
+        return rt;
     }
     this->fullyInitialized=fullInit;
-    return true;
+    return rt;
 }
 
 bool ChartInfo::IsOpen(){
@@ -170,7 +173,8 @@ bool ChartInfo::Close(){
 }
 
 int ChartInfo::Init(bool allowRetry) {
-    if (! Reopen(false,allowRetry)) return PI_INIT_FAIL_REMOVE;
+    int rt=DoReopen(false,allowRetry);
+    if (rt != PI_INIT_OK) return rt;
     nativeScale=chart->GetNativeScale();
     chart->GetChartExtent(&extent);
     isValid=true;
