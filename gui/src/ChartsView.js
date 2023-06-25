@@ -28,12 +28,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import Util from './Util.js';
 import ErrorDisplay from './components/ErrorDisplay.js';
-import CheckBox from './components/CheckBox.js';
 import OverlayDialog from './components/OverlayDialog.js';
 import ChartSetStatus from './components/ChartSetStatus.js';
-import assign from 'object-assign';
 import StatusLine from './components/StatusLine.js';
-import Promise from 'promise';
 
 const SETTINGSURL="/settings/";
 const UPLOADURL="/upload/";

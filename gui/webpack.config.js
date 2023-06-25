@@ -27,56 +27,72 @@
 const path=require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-var isProduction=(process.env.NODE_ENV === 'production') || (process.argv.indexOf('-p') !== -1);
 
-let outdir="debug";
-if (isProduction) {
-    outdir="release";
-}
-let devtool="inline-source-map";
-let resolveAlias={};
-if (isProduction) {
-    devtool="";
-    resolveAlias['react$']=__dirname+"/node_modules/react/cjs/react.production.min.js";
-    resolveAlias['react-dom$']=__dirname+"/node_modules/react-dom/cjs/react-dom.production.min.js";
-}
-var formatDate = function (date) {
-    var yyyy = date.getFullYear();
-    var mm = date.getMonth() < 9 ? "0" + (date.getMonth() + 1) : (date.getMonth() + 1); // getMonth() is zero-based
-    var dd = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
-    var yyyymmdd= "".concat(yyyy).concat(mm).concat(dd);
-    var hh = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
-    var min = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
-    return "".concat(yyyymmdd).concat("-").concat(hh).concat(min);
+module.exports = function (env, argv) {
+    var isProduction = argv.mode === 'production';
 
-};
-var TESTSERVER=process.env.TESTSERVER||"172.17.0.2";
-var TESTPORT=process.env.TESTPORT||"8082";
-module.exports = function(env) {
+    let outdir = "debug";
+    if (isProduction) {
+        outdir = "release";
+    }
+    let devtool = "inline-source-map";
+    let resolveAlias = {};
+    if (isProduction) {
+        devtool = undefined;
+        resolveAlias['react$'] = __dirname + "/node_modules/react/cjs/react.production.min.js";
+        resolveAlias['react-dom$'] = __dirname + "/node_modules/react-dom/cjs/react-dom.production.min.js";
+    }
+    var formatDate = function (date) {
+        var yyyy = date.getFullYear();
+        var mm = date.getMonth() < 9 ? "0" + (date.getMonth() + 1) : (date.getMonth() + 1); // getMonth() is zero-based
+        var dd = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+        var yyyymmdd = "".concat(yyyy).concat(mm).concat(dd);
+        var hh = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
+        var min = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
+        return "".concat(yyyymmdd).concat("-").concat(hh).concat(min);
+
+    };
+    var TESTSERVER = process.env.TESTSERVER || "172.17.0.2";
+    var TESTPORT = process.env.TESTPORT || "8082";
+    var base=path.join(__dirname, 'src');
+
     return {
-        context: path.join(__dirname, 'src'),
+        context: base,
         entry: [
             './index.js',
         ],
         output: {
-            path: ((env && env.outpath) ? path.join(env.outpath,outdir) : path.join(__dirname, 'build',outdir)),
+            path: ((env && env.outpath) ? path.join(env.outpath, outdir) : path.join(__dirname, 'build', outdir)),
             filename: 'bundle.js',
             hashFunction: "sha256"
         },
         module: {
             rules: [
                 {
-                    test: /version\.js$/,
+                    test: path.join(__dirname,'version.js'),
                     loader: 'val-loader',
-                    options:{
-                        version: (process.env.AVNAV_VERSION?process.env.AVNAV_VERSION:"dev-"+formatDate(new Date()))
+                    options: {
+                        version: (process.env.AVNAV_VERSION ? process.env.AVNAV_VERSION : "dev-" + formatDate(new Date()))
                     }
                 },
                 {
                     test: /\.js$/,
                     exclude: /node_modules/,
                     use: [
-                        'babel-loader',
+                        {
+                            loader: 'babel-loader',
+                            options:
+                                {
+                                    presets: ['@babel/preset-react', ["@babel/preset-env",
+                                        {
+                                            useBuiltIns: 'usage',
+                                            corejs: {version:"3.31",proposals: true}
+
+                                            //debug: true
+                                        },
+                                    ]]
+                                }
+                        }
                     ],
                 },
 
@@ -84,7 +100,7 @@ module.exports = function(env) {
                     test: /\.css$/,
                     use: [{
                         loader: MiniCssExtractPlugin.loader
-                        },
+                    },
                         'css-loader']
                 },
 
@@ -96,9 +112,9 @@ module.exports = function(env) {
                         },
                         "css-loader",
                         {
-                            loader:"less-loader",
-                            options:{
-                                javascriptEnabled:true
+                            loader: "less-loader",
+                            options: {
+                                lessOptions: {javascriptEnabled: true}
                             }
                         }]
                 },
@@ -106,7 +122,7 @@ module.exports = function(env) {
                 {
                     test: /images[\\\/].*\.png$|images[\\\/].*\.svg$/,
                     loader: 'file-loader',
-                    options:{
+                    options: {
                         name: "[name].[ext]",
                         esModule: false
                     }
@@ -126,15 +142,15 @@ module.exports = function(env) {
                 {from: '../public'}
 
             ]),
-            new MiniCssExtractPlugin( {filename:"index.css"}),
+            new MiniCssExtractPlugin({filename: "index.css"}),
         ],
         devtool: devtool,
-        mode: isProduction?'production':'development',
-        devServer:{
-            proxy:{
-                '/status':'http://'+TESTSERVER+':'+TESTPORT,
-                '/settings': 'http://'+TESTSERVER+':'+TESTPORT,
-                '/upload': 'http://'+TESTSERVER+':'+TESTPORT
+        mode: isProduction ? 'production' : 'development',
+        devServer: {
+            proxy: {
+                '/status': 'http://' + TESTSERVER + ':' + TESTPORT,
+                '/settings': 'http://' + TESTSERVER + ':' + TESTPORT,
+                '/upload': 'http://' + TESTSERVER + ':' + TESTPORT
             }
         }
     }

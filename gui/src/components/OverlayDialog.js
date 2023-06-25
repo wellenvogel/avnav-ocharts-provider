@@ -27,7 +27,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import assign from 'object-assign';
-import Promise from 'promise';
 export class OverlayDialog extends React.Component {
     constructor(props) {
         super(props);
