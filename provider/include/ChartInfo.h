@@ -188,6 +188,7 @@ public:
 
 private:
     long    lastRender;
+    int     DoReopen(bool fullInit=false,bool allowRetry=false);
 };
 
 class ChartInfoWithScale{
