@@ -53,7 +53,7 @@ const ChartSetStatus=(props)=>{
                 }
             >
             <StatusLine label="Status" value={status} icon={true}/>
-            <StatusLine label="Charts" value={props.numValidCharts+", minZoom="+charts.minZoom+", maxZoom="+charts.maxZoom}/>
+            <StatusLine label="Charts" value={props.numValidCharts+"/"+props.numCandidates+", minZoom="+charts.minZoom+", maxZoom="+charts.maxZoom}/>
             <StatusLine label="Directory" value={info.directory}/>
             <StatusLine label="Info"  value={"Version="+info.version+", ValidTo="+info.validTo}/>
             {props.showDetails &&
