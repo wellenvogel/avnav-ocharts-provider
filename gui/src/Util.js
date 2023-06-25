@@ -25,7 +25,6 @@
  SOFTWARE.
  */
 
-import Promise from 'promise';
 import assign from 'object-assign';
 
 const Util={
