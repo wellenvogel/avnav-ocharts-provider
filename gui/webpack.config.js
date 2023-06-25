@@ -61,6 +61,7 @@ module.exports = function(env) {
         output: {
             path: ((env && env.outpath) ? path.join(env.outpath,outdir) : path.join(__dirname, 'build',outdir)),
             filename: 'bundle.js',
+            hashFunction: "sha256"
         },
         module: {
             rules: [
