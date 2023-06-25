@@ -50,21 +50,29 @@ class Writer : public Thread{
     char buffer[BUFSIZE];
     int inHandle;
     int outHandle;
+    wxString name;
     public:
         bool done=false;
-        Writer(int inHandle, int outHandle){
+        Writer(int inHandle, int outHandle,wxString name){
             this->inHandle=inHandle;
             this->outHandle=outHandle;
+            this->name=name;
         }
         virtual void run(){
-            LOG_DEBUG("%s-writer(%d): start",PRFX,inHandle);
-            size_t rd=0;
+            LOG_INFO("%s-writer(%s-%d): start",PRFX,name,inHandle);
+            ssize_t rd=0;
             size_t nBytes=0;
+            size_t nBytesWritten=0;
             while((rd=read(inHandle,buffer,BUFSIZE)) > 0){
                 nBytes+=rd;
-                write(outHandle,buffer,rd);
+                ssize_t wr=write(outHandle,buffer,rd);
+                if (wr > 0) nBytesWritten+=wr;
+                if (wr != rd){
+                    break;                  
+                }
             }
-            LOG_DEBUG("%s-writer(%d): finished after %lld bytes",PRFX,inHandle,(long long)nBytes);
+            LOG_INFO("%s-writer(%s-%d): finished after %lld bytes read, %lld bytes written",
+                PRFX,name,inHandle,(long long)nBytes,(long long)nBytesWritten);
             close(inHandle);
             close(outHandle);
             done=true;
@@ -132,7 +140,7 @@ class Forwarder : public Thread{
                                 continue;   
                             }
                             LOG_INFO("%s: passthrough for %s->%d",PRFX,fname,fileHandle);
-                            Writer *writer=new Writer(fileHandle,fifoHandle);
+                            Writer *writer=new Writer(fileHandle,fifoHandle,fname);
                             writers.push_back(writer);
                             writer->start();
                             writer->detach();

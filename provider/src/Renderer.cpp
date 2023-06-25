@@ -260,12 +260,14 @@ void Renderer::DoRenderTile(RenderMessage *msg){
     //worst case we render again - no problem anyway - but in 99.xxx% this saves the time
     //to look up the disk cache entry
     if (set->cache != NULL){
+        /*
         CacheEntry *ce=set->cache->FindEntry(tile.GetCacheKey(),false);
         if (ce){
             LOG_DEBUG(wxT("late cache hit for %s"),tile.ToString());
             msg->StoreResult(ce,true);
             return ;
         }
+        */
     }
     
     wxBitmap renderBitmap=initialBitmap->GetSubBitmap(wxRect(0,0,TILE_SIZE,TILE_SIZE));
@@ -366,7 +368,7 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
 Renderer::RenderResult Renderer::renderTile(ChartSet *set,TileInfo &tile,CacheEntry *&out,long timeout,bool forCache){
     set->SetTileCacheKey(tile);
     if (! forCache && set->cache != NULL){
-        out=set->cache->FindEntry(tile.GetCacheKey());
+        //out=set->cache->FindEntry(tile.GetCacheKey());
         if (out != NULL){
             out->prefill=false; //tile has now being requested...
             LOG_DEBUG(_T("render tile %s - request cache hit"),tile.ToString());
