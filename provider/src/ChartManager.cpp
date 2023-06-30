@@ -212,6 +212,7 @@ bool ChartManager::HandleChart(wxFileName chartFile,bool setsOnly,bool canDelete
         }
         LOG_ERROR(_T("loading chart failed with code %d"), rt); 
         if (rt == PI_INIT_FAIL_NOERROR){
+            info->SetIgnored();
             set->AddChart(info);
             return false;
         }
@@ -731,6 +732,9 @@ bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
                 config->Write("nlat", extent.NLAT);
                 config->Write("elon", extent.ELON);
             }
+            if (info->IsIgnored()){
+                config->Write("ignored",true);
+            }
             numWritten++;
         }
     }
@@ -840,8 +844,18 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
                     numRead++;
                 }
                 else {
-                    LOG_ERROR(wxT("adding invalid chart entry %s to set %s"),candidate.fileName,set->GetKey());
-                    set->AddError(candidate.fileName);
+                    if (config->HasEntry("ignored")){
+                        bool ignored=false;
+                        config->Read("ignored",&ignored);
+                        if (ignored) info->SetIgnored();
+                    }
+                    if (info->IsIgnored()){
+                        LOG_INFO("adding ignored chart entry %s to set %s",candidate.fileName,set->GetKey());
+                    }
+                    else{
+                        LOG_ERROR(wxT("adding invalid chart entry %s to set %s"),candidate.fileName,set->GetKey());
+                        set->AddError(candidate.fileName);
+                    }
                 }
                 set->AddChart(info);
             }

@@ -147,6 +147,7 @@ private:
     bool            fullyInitialized;
     bool            isRaster=false;
     bool            isOverlay=false;
+    bool            isIgnored=false;
          
 public:
     typedef enum{
@@ -185,6 +186,8 @@ public:
     bool        IsValid(){return isValid;}
     bool        IsRaster();
     bool        IsOverlay();
+    bool        IsIgnored(){return isIgnored;}
+    void        SetIgnored(){isIgnored=true;}
 
 private:
     long    lastRender;

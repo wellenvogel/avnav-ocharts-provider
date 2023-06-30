@@ -477,7 +477,14 @@ private:
                 if (!wxDirExists(fileName)) {
                     LOG_ERROR("chart dir %s does not exist, ignore", fileName);
                 } else {
-                    if (std::find(ocpnChartDirs.begin(),ocpnChartDirs.end(),fileName) == ocpnChartDirs.end()){
+                    bool found=false;
+                    for (auto it = ocpnChartDirs.begin();it != ocpnChartDirs.end();it++){
+                        if (fileName.StartsWith(*it)){
+                            found=true;
+                            break;
+                        }
+                    }
+                    if (!found){
                         LOG_INFO("found chart dir %s in ocharts but not on opencpn level",fileName);
                     }
                     else{
