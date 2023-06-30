@@ -1,0 +1,16 @@
+#arm32v7/debian,arm64v8/debian,ubuntu
+ARG OSLINE=arm32v7/debian
+#bookworm,24.04?
+ARG OSVERSION=bookworm
+
+FROM ${OSLINE}:${OSVERSION}
+
+RUN apt-get update #&& apt-get upgrade
+
+#ugly hack for ubuntu:focal
+RUN echo "Europe/Berlin" > /etc/timezone
+RUN ln -sf /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake gettext git-core libarchive-dev libbz2-dev libcurl4-openssl-dev libssl-dev libelf-dev libexif-dev lsb-release portaudio19-dev libwxsvg-dev libsqlite3-dev libtinyxml-dev libunarr-dev libsndfile1-dev libwxgtk3.2-dev libwxgtk-webview3.2-dev libcairo2-dev libgdk-pixbuf2.0-dev libgl1-mesa-dev liblz4-dev liblzma-dev libpango1.0-dev libglib2.0-dev libglew-dev
+
+CMD /bin/bash
