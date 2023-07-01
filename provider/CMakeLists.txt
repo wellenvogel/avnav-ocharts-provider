@@ -619,6 +619,10 @@ IF(QT_ANDROID)
   add_definitions(-DQT_WIDGETS_LIB)
 endif (QT_ANDROID)
 
+if (NOT AVNAV_VERSION)
+    set(AVNAV_VERSION "development")
+endif()
+add_definitions(-DAVNAV_VERSION=${AVNAV_VERSION})
 
 set(
   HDRS

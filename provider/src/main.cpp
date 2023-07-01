@@ -193,7 +193,8 @@ public:
     }
 };
 
-
+#define VAL(v) #v
+#define TOSTRING(str) VAL(str)
 
 class AvNavProvider : public wxApp {
 private:
@@ -237,6 +238,7 @@ public:
         }
         wxPrintf(_T("%s\n"),msg);
         LOG_INFO(msg);
+        LOG_INFO("Version=%s",TOSTRING(AVNAV_VERSION));
         return run(myArgs);
     }
 

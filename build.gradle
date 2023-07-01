@@ -478,6 +478,8 @@ VARIANTS.each { variant ->
         if (project.hasProperty("cleanBefore")) {
             e.args("-c")
         }
+        e.args("-v")
+        e.args(project.avnavVersion)
         e.args(workName)
         e.args(imageName)
         e.dependsOn(dt)
