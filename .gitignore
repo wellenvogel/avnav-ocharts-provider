@@ -16,5 +16,6 @@ charts/
 **/*.log.*
 
 /provider/build/
+provider/include/Version.h
 testbase/test/*
 testbase/testkey

@@ -74,6 +74,7 @@
 #include "ColorTable.h"
 #include "S57AttributeDecoder.h"
 #include "TestHelper.h"
+#include "Version.h"
 
 
 
