@@ -14,7 +14,6 @@ ttyopt="-t"
 bFlag=""
 CMAKE_MODE=Release
 internal=0
-version=""
 while getopts caidv: opt
 do
 	case $opt in
@@ -29,9 +28,6 @@ do
 		;;
 		i)
 		internal=1
-		;;
-		v)
-		version=$OPTARG
 		;;
 		*)
 		usage
@@ -76,7 +72,6 @@ if [ $internal = 0 ] ; then
 	fi
 	cflag=""
 	[ $doClean = 1 ] && cflag="-c"
-	[ "$version" != "" ] && vflag="-v $version"
 	set -x
 	user=`id -u`
 	group=`id -g`
@@ -95,8 +90,7 @@ if [ ! -d "$BUILD_DIR" ] ; then
 	doClean=1
 fi
 cd $BUILD_DIR || exit 1
-[ "$version" = "" ] && version="development" 
-cmake -DCMAKE_BUILD_TYPE=$CMAKE_MODE -DAVNAV_VERSION=$version ../..
+cmake -DCMAKE_BUILD_TYPE=$CMAKE_MODE ../..
 make
 
 
