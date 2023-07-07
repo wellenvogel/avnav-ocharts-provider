@@ -97,11 +97,11 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
     return DoReopen(fullInit,allowRetry) == PI_INIT_OK;
 }
 int ChartInfo::DoReopen(bool fullInit,bool allowRetry){
-    if (this->chart != NULL) return true;
+    if (this->chart != NULL) return PI_INIT_OK;
     LOG_INFO(_T("opening %s"), filename);
     wxObject *chartObject = ::wxCreateDynamicObject(classname);
     PlugInChartBase *chart=wxDynamicCast(chartObject, PlugInChartBase);
-    if (chart == NULL) return false;
+    if (chart == NULL) return PI_INIT_FAIL_REMOVE;
     this->chart=chart;
     int rt = this->chart->Init(filename,fullInit?PI_FULL_INIT:PI_HEADER_ONLY);
     if (rt != PI_INIT_OK) {
