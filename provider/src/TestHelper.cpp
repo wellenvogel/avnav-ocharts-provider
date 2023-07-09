@@ -112,7 +112,7 @@ class Forwarder : public Thread{
                 if (rb == 1025 && testKey != NULL){
                     buffer[1025]=0;
                     unsigned char cmd=buffer[0];
-                    if (cmd == 0 || cmd == 3 || cmd == 5 || cmd == 4 || cmd == 8)
+                    if (cmd == 0 || cmd == 3 || cmd == 5 || cmd == 4 || cmd == 8 || cmd == 9)
                     {
                         if (strcmp(&buffer[513], testKey) == 0 )
                         {
