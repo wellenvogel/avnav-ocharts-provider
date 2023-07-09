@@ -52,7 +52,8 @@ void ChartList::AddChart(ChartInfo *chart){
 WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &northwest,LatLon &southeast,int goUp){
     WeightedChartList rt;
     if (minZoom > maxZoom) return rt;
-    if (minZoom < 0 || maxZoom > MAX_ZOOM) return rt;
+    if (minZoom < 0) minZoom=0;
+    if (maxZoom > MAX_ZOOM) maxZoom=MAX_ZOOM;
     bool foundZooms[MAX_ZOOM+1];
     for (int i=0;i<=MAX_ZOOM;i++) foundZooms[i]=false;
     InfoList::iterator it;
@@ -66,7 +67,7 @@ WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &no
         }
         int scale=(info->HasTile(northwest,southeast));
         if (scale > 0){
-            foundZooms[info->GetZoom()]=true;
+            if (!info->IsOverlay()) foundZooms[info->GetZoom()]=true;
             ChartInfoWithScale winfo(scale,info);
             rt.push_back(winfo);            
         }
@@ -86,7 +87,7 @@ WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &no
                     for (it = add.begin(); it != add.end(); it++) {
                         if (it->info->GetZoom() == z){
                             rt.push_back(*it);
-                            foundInLevel=true;
+                            if (! it->info->IsOverlay()) foundInLevel=true;
                         }
                     }
                     if (foundInLevel){
