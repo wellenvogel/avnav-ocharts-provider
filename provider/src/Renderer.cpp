@@ -348,6 +348,7 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
     }
     vpoint.view_scale_ppm=1/mpp;
     int minZoom=allLower?set->GetMinZoom():tile.zoom-manager->GetSettings()->GetOverZoom();
+    LOG_DEBUG(wxT("prepare render tile=%s, nlat=%f,wlon=%f,slat=%f,elon=%f"),tile.ToString(true),northwest.lat,northwest.lon,southeast.lat,southeast.lon);
     WeightedChartList infos=set->FindChartForTile(minZoom,
                 tile.zoom,
                 northwest,

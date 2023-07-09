@@ -187,7 +187,7 @@ int ChartInfo::FillInfo(const ZoomLevelScales *scales) {
     ymin=TileHelper::lat2tiley(extent.NLAT,zoom);
     xmax=TileHelper::long2tilex(extent.ELON,zoom);
     ymax=TileHelper::lat2tiley(extent.SLAT,zoom);
-    LOG_INFO("ChartInfo::FillInfo %s: scale=%d, zoom=%d, %s",filename,nativeScale,zoom, GetXmlBounds());
+    LOG_INFO("ChartInfo::FillInfo %s",ToString());
     return PI_INIT_OK;
 }
 
