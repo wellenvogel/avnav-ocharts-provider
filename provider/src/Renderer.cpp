@@ -361,7 +361,14 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
         return false; //no matching chart found
     }
     std::sort(infos.begin(),infos.end(),scaleSort);
-    LOG_DEBUG(wxT("prepare render %s with %ld charts"),tile.ToString(true),infos.size());
+    wxString listInfo;
+    if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)){
+        for (auto it=infos.begin();it!=infos.end();it++){
+            if (it != infos.begin()) listInfo << ",";
+            listInfo << it->info->GetIndex();
+        }
+    }
+    LOG_DEBUG(wxT("prepare render %s with %ld charts [%s]"),tile.ToString(true),infos.size(),listInfo);
     msg->SetCharts(infos);
     msg->SetViewPort(vpoint);
     msg->SetManager(manager);

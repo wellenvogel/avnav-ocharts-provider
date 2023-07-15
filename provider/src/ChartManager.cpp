@@ -724,6 +724,7 @@ bool ChartManager::WriteChartInfoCache(wxFileConfig* config){
             config->SetPath(wxT("/")+set->GetKey());
             config->SetPath(GetCacheFileName(info->GetFileName()));
             config->Write("valid",info->IsValid());
+            config->Write("index",info->GetIndex());
             if (info->IsValid()) {
                 config->Write("scale", info->GetNativeScale());
                 ExtentPI extent = info->GetExtent();
@@ -832,6 +833,11 @@ bool ChartManager::ReadChartInfoCache(wxFileConfig* config, int memKb){
                 }
                 if (round != 1) continue;
                 ChartInfo *info=new ChartInfo(it->second.classname,candidate.fileName);
+                if(config->HasEntry("index")){
+                    int index=-1;
+                    config->Read("index",&index);
+                    info->SetIndex(index);
+                }
                 if (valid){
                     long nativeScale = -1;
                     config->Read("scale", &nativeScale);

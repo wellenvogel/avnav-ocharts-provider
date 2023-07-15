@@ -299,6 +299,10 @@ void    ChartSet::SetReady(){
 }
 
 void ChartSet::AddChart(ChartInfo* info){
+    if (info->GetIndex() == -1){
+        info->SetIndex(chartIndex);
+        chartIndex++;
+    }
     charts->AddChart(info);
     if (info->IsValid()){
         numValidCharts=charts->NumValidCharts();

@@ -148,6 +148,7 @@ private:
     bool            isRaster=false;
     bool            isOverlay=false;
     bool            isIgnored=false;
+    int             index=-1;
          
 public:
     typedef enum{
@@ -170,6 +171,7 @@ public:
      * @return 
      */
     int         HasTile(LatLon &northwest,LatLon &southeast);
+    wxRegion    Covered(LatLon &northwest,LatLon &southeast, int regionSize=1000);
     bool        UpdateBoundings(/*inout*/BoundingBox *box);
     RenderResult Render(wxDC &out,const PlugIn_ViewPort& VPoint, const wxRegion &Region, int zoom);
     ObjectList  FeatureInfo(PlugIn_ViewPort& VPoint, float lat, float lon, float tolerance);
@@ -188,6 +190,8 @@ public:
     bool        IsOverlay();
     bool        IsIgnored(){return isIgnored;}
     void        SetIgnored(){isIgnored=true;}
+    void        SetIndex(int index){this->index=index;}
+    int         GetIndex(){return index;}
 
 private:
     long    lastRender;
