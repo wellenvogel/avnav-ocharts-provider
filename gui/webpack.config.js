@@ -121,10 +121,9 @@ module.exports = function (env, argv) {
 
                 {
                     test: /images[\\\/].*\.png$|images[\\\/].*\.svg$/,
-                    loader: 'file-loader',
-                    options: {
-                        name: "[name].[ext]",
-                        esModule: false
+                    type: 'asset/resource',
+                    generator: {
+                        filename: '[name][ext]'
                     }
                 }
 

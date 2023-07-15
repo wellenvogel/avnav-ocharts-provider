@@ -296,6 +296,17 @@ task pkgVersion{
         println "package version $ospackage.version"
     }
 }
+task generateVersion{
+    doLast() {
+        def VERSIONFILE=file("provider/include/Version.h")
+        def current=VERSIONFILE.exists()?VERSIONFILE.getText():""
+        def newText="#define AVNAV_VERSION \"$project.avnavVersion\"\n"
+        if (newText != current){
+            logger.lifecycle("write $VERSIONFILE")
+            VERSIONFILE.write(newText)
+        }
+    }
+}
 
 task packages{
     doLast(){
@@ -481,6 +492,7 @@ VARIANTS.each { variant ->
         e.args(workName)
         e.args(imageName)
         e.dependsOn(dt)
+        e.dependsOn(generateVersion)
     }
     tasks.build.dependsOn(exeBuild)
     logger.lifecycle("created build task ${exeBuild.name}")

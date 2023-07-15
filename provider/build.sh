@@ -14,7 +14,7 @@ ttyopt="-t"
 bFlag=""
 CMAKE_MODE=Release
 internal=0
-while getopts caid opt
+while getopts caidv: opt
 do
 	case $opt in
 		c)
@@ -75,7 +75,7 @@ if [ $internal = 0 ] ; then
 	set -x
 	user=`id -u`
 	group=`id -g`
-	docker run --rm --name "$container" -i $ttyopt  -v $PDIR:/src -u $user:$group "$imagename" /bin/bash -c "cd /src && ./build.sh $bFlag $cflag -i $builddir"
+	docker run --rm --name "$container" -i $ttyopt  -v $PDIR:/src -u $user:$group "$imagename" /bin/bash -c "cd /src && ./build.sh $bFlag $cflag $vflag -i $builddir"
 	exit $?
 fi
 BUILD_DIR="$PDIR/build/$builddir"
@@ -90,12 +90,7 @@ if [ ! -d "$BUILD_DIR" ] ; then
 	doClean=1
 fi
 cd $BUILD_DIR || exit 1
-if [ ! -f Makefile ] ; then
-    doClean=1
-fi
-if [ $doClean = 1 ] ; then
-	cmake -DCMAKE_BUILD_TYPE=$CMAKE_MODE ../..
-fi
+cmake -DCMAKE_BUILD_TYPE=$CMAKE_MODE ../..
 make
 
 

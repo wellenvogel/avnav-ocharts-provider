@@ -348,6 +348,7 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
     }
     vpoint.view_scale_ppm=1/mpp;
     int minZoom=allLower?set->GetMinZoom():tile.zoom-manager->GetSettings()->GetOverZoom();
+    LOG_DEBUG(wxT("prepare render tile=%s, nlat=%f,wlon=%f,slat=%f,elon=%f"),tile.ToString(true),northwest.lat,northwest.lon,southeast.lat,southeast.lon);
     WeightedChartList infos=set->FindChartForTile(minZoom,
                 tile.zoom,
                 northwest,
@@ -360,7 +361,14 @@ bool scaleSort(ChartInfoWithScale first, ChartInfoWithScale second){
         return false; //no matching chart found
     }
     std::sort(infos.begin(),infos.end(),scaleSort);
-    LOG_DEBUG(wxT("prepare render %s with %ld charts"),tile.ToString(true),infos.size());
+    wxString listInfo;
+    if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)){
+        for (auto it=infos.begin();it!=infos.end();it++){
+            if (it != infos.begin()) listInfo << ",";
+            listInfo << it->info->GetIndex();
+        }
+    }
+    LOG_DEBUG(wxT("prepare render %s with %ld charts [%s]"),tile.ToString(true),infos.size(),listInfo);
     msg->SetCharts(infos);
     msg->SetViewPort(vpoint);
     msg->SetManager(manager);

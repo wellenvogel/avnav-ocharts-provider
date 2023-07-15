@@ -74,6 +74,7 @@
 #include "ColorTable.h"
 #include "S57AttributeDecoder.h"
 #include "TestHelper.h"
+#include "Version.h"
 
 
 
@@ -193,7 +194,8 @@ public:
     }
 };
 
-
+#define VAL(v) #v
+#define TOSTRING(str) VAL(str)
 
 class AvNavProvider : public wxApp {
 private:
@@ -237,6 +239,7 @@ public:
         }
         wxPrintf(_T("%s\n"),msg);
         LOG_INFO(msg);
+        LOG_INFO("Version=%s",TOSTRING(AVNAV_VERSION));
         return run(myArgs);
     }
 
@@ -622,13 +625,14 @@ private:
         }
         ChartSetInfo::WriteEulasToConfig(config,&infos);
         int debuglevel=0;
-        if (Logger::instance()->HasLevel(LOG_LEVEL_INFO)) debuglevel=4;
-        if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)) debuglevel=10;
+        if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)) debuglevel=1;
         config->SetPath( _T("/PlugIns/oesenc") );
         LOG_INFO(wxT("setting plugin debug to %d"),debuglevel);
         config->Write( _T("DEBUG_LEVEL"),debuglevel);
         config->SetPath( _T("/PlugIns/ocharts") );
         LOG_INFO(wxT("setting plugin debug to %d"),debuglevel);
+        config->Write( _T("DEBUG_LEVEL"),debuglevel);
+        config->SetPath( _T("/PlugIns/ocharts/oesenc") );
         config->Write( _T("DEBUG_LEVEL"),debuglevel);
         if (!config->Flush()){
             LOG_ERRORC(wxT("unable to write to config"));

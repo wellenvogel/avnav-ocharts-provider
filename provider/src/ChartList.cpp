@@ -30,6 +30,7 @@
 #include <wx/arrimpl.cpp> 
 #include <wx/log.h>
 #include "StringHelper.h"
+#include "Logger.h"
 
 
 
@@ -49,12 +50,20 @@ void ChartList::AddChart(ChartInfo *chart){
     chart->UpdateBoundings(&boundings);
 }
 
+static wxString regionToString(const wxRegion &r){
+    wxCoord x,y,w,h;
+    r.GetBox(x,y,w,h);
+    wxString rt;
+    rt.Printf("x=%d,y=%d,w=%d,h=%d,e=%s",x,y,w,h,r.IsEmpty()?"true":"false");
+    return rt;
+}
 WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &northwest,LatLon &southeast,int goUp){
     WeightedChartList rt;
     if (minZoom > maxZoom) return rt;
-    if (minZoom < 0 || maxZoom > MAX_ZOOM) return rt;
-    bool foundZooms[MAX_ZOOM+1];
-    for (int i=0;i<=MAX_ZOOM;i++) foundZooms[i]=false;
+    if (minZoom < 0) minZoom=0;
+    if (maxZoom > MAX_ZOOM) maxZoom=MAX_ZOOM;
+    int coverScale=1000;
+    wxRegion tileRegion(0,0,coverScale,coverScale);
     InfoList::iterator it;
     for (it=chartList.begin();it!= chartList.end();it++){
         ChartInfo *info=(*it);
@@ -66,30 +75,44 @@ WeightedChartList ChartList::FindChartForTile(int minZoom,int maxZoom,LatLon &no
         }
         int scale=(info->HasTile(northwest,southeast));
         if (scale > 0){
-            foundZooms[info->GetZoom()]=true;
+            if (!info->IsOverlay() ) {
+                if (info->GetZoom() >= (maxZoom-1) && goUp > 0){
+                    wxRegion cover=info->Covered(northwest,southeast,coverScale);
+                    if (! tileRegion.IsEmpty()) tileRegion.Subtract(cover);
+                    if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)){
+                        LOG_DEBUG("Chart [%d], region %s, tileRegion %s",info->GetIndex(),regionToString(cover),regionToString(tileRegion));
+                    }
+                }
+            }
             ChartInfoWithScale winfo(scale,info);
             rt.push_back(winfo);            
         }
     }
+    if (goUp <= 0) return rt;
     int upperZoom=maxZoom+goUp;
     if (upperZoom > MAX_ZOOM) upperZoom=MAX_ZOOM;
     if (upperZoom > maxZoom ) {
         //tmp: if we did not find a tile at the wanted zoom - go x levels up
-        bool ok = foundZooms[maxZoom];        
+        bool ok = tileRegion.IsEmpty();        
         if (!ok) {
             WeightedChartList add = FindChartForTile(maxZoom + 1, upperZoom, northwest, southeast, 0);
             if (add.size() > 0) {
                 bool found=false;
-                for (int z=maxZoom+1;z<=upperZoom && ! found;z++){
+                for (int z=maxZoom+1;z<=upperZoom && ! found ;z++){
                     WeightedChartList::iterator it;
-                    bool foundInLevel=false;
                     for (it = add.begin(); it != add.end(); it++) {
                         if (it->info->GetZoom() == z){
                             rt.push_back(*it);
-                            foundInLevel=true;
+                            if (! it->info->IsOverlay()) {
+                                wxRegion cover=it->info->Covered(northwest,southeast,coverScale);
+                                if (! tileRegion.IsEmpty()) tileRegion.Subtract(cover);
+                                if (Logger::instance()->HasLevel(LOG_LEVEL_DEBUG)){
+                                    LOG_DEBUG("Chart uz [%d], region %s, tileRegion %s",it->info->GetIndex(),regionToString(cover),regionToString(tileRegion));
+                                }
+                            }
                         }
                     }
-                    if (foundInLevel){
+                    if (tileRegion.IsEmpty()){
                         found=true;
                         break;
                     }

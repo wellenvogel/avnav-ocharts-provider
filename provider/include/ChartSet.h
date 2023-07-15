@@ -140,7 +140,8 @@ private:
     int                 reopenErrors; //errors during reopen
     int                 reopenOk; //consecutive reopen ok
     CandidateList       candidates;
-    int                 numValidCharts;   
+    int                 numValidCharts;
+    int                 chartIndex=0;   
 };
 
 

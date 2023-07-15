@@ -97,11 +97,11 @@ bool ChartInfo::Reopen(bool fullInit,bool allowRetry){
     return DoReopen(fullInit,allowRetry) == PI_INIT_OK;
 }
 int ChartInfo::DoReopen(bool fullInit,bool allowRetry){
-    if (this->chart != NULL) return true;
+    if (this->chart != NULL) return PI_INIT_OK;
     LOG_INFO(_T("opening %s"), filename);
     wxObject *chartObject = ::wxCreateDynamicObject(classname);
     PlugInChartBase *chart=wxDynamicCast(chartObject, PlugInChartBase);
-    if (chart == NULL) return false;
+    if (chart == NULL) return PI_INIT_FAIL_REMOVE;
     this->chart=chart;
     int rt = this->chart->Init(filename,fullInit?PI_FULL_INIT:PI_HEADER_ONLY);
     if (rt != PI_INIT_OK) {
@@ -187,7 +187,7 @@ int ChartInfo::FillInfo(const ZoomLevelScales *scales) {
     ymin=TileHelper::lat2tiley(extent.NLAT,zoom);
     xmax=TileHelper::long2tilex(extent.ELON,zoom);
     ymax=TileHelper::lat2tiley(extent.SLAT,zoom);
-    LOG_INFO("ChartInfo::FillInfo %s: scale=%d, zoom=%d, %s",filename,nativeScale,zoom, GetXmlBounds());
+    LOG_INFO("ChartInfo::FillInfo %s",ToString());
     return PI_INIT_OK;
 }
 
@@ -197,8 +197,8 @@ wxString ChartInfo::GetXmlBounds(){
 }
 
 wxString ChartInfo::ToString(){
-    return wxString::Format(_T("Chart file=%s,valid=%s,scale=%d,nlat=%f,wlon=%f,slat=%f,elon=%f,zoom=%d,bounds=%s"),
-            filename,PF_BOOL(isValid),nativeScale,extent.NLAT,extent.WLON,extent.SLAT,extent.ELON,zoom,GetXmlBounds());
+    return wxString::Format(_T("Chart [%03d] file=%s,valid=%s,scale=%d,nlat=%f,wlon=%f,slat=%f,elon=%f,zoom=%d,bounds=%s"),
+            index,filename,PF_BOOL(isValid),nativeScale,extent.NLAT,extent.WLON,extent.SLAT,extent.ELON,zoom,GetXmlBounds());
 }
 
 int ChartInfo::HasTile(LatLon &northwest,LatLon &southeast){
@@ -207,6 +207,42 @@ int ChartInfo::HasTile(LatLon &northwest,LatLon &southeast){
     if (southeast.lon < extent.WLON) return 0;
     if (northwest.lat < extent.SLAT) return 0;
     return nativeScale;
+}
+/**
+ * we go for a simple coverage model here
+ * we directly map coordinates to some arbitrary surface
+ * so that we can use wxRegion
+ * This function returns the region covered by the chart extent
+ * assuming a rectangular surface of regionSize*regionSize pixel
+ * for the coordinates described by northwest and southeast
+*/
+wxRegion ChartInfo::Covered(LatLon &northwest,LatLon &southeast, int regionSize){
+    wxRegion rt(0,0,0,0);
+    if (HasTile(northwest, southeast) <= 0) return rt;
+    bool fully=true;
+    if (southeast.lat < extent.SLAT) fully=false;
+    if (southeast.lon > extent.ELON) fully=false;
+    if (northwest.lat > extent.NLAT) fully=false;
+    if (northwest.lon < extent.WLON) fully=false;
+    if (fully) return wxRegion(0,0,regionSize,regionSize);
+    double xw=southeast.lon-northwest.lon;
+    double yw=northwest.lat-southeast.lat;
+    double ds=regionSize;
+    if (yw <= 0 || xw <= 0) return rt;
+    int x=(extent.WLON-northwest.lon)*ds/xw;
+    int rx=(extent.ELON-extent.WLON)*ds/xw;
+    if (x<0) x=0;
+    if (x > regionSize) x=regionSize;
+    if (rx < 0) rx=0;
+    if (rx > regionSize) rx=regionSize;
+    //lat counts up northways but y counts down
+    int y=-(extent.NLAT-northwest.lat)*ds/yw;
+    int ry=-(extent.SLAT-extent.NLAT)*ds/yw;
+    if (y < 0) y=0;
+    if (y > regionSize) y=regionSize;
+    if (ry < 0) ry=0;
+    if (ry > regionSize) ry=regionSize;
+    return wxRegion(x,y,rx,ry);
 }
 
 bool ChartInfo::UpdateBoundings(BoundingBox* box){

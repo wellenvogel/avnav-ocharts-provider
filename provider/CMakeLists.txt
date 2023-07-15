@@ -619,7 +619,6 @@ IF(QT_ANDROID)
   add_definitions(-DQT_WIDGETS_LIB)
 endif (QT_ANDROID)
 
-
 set(
   HDRS
   include/ocpn-import/georef.h
@@ -668,9 +667,10 @@ set(
   include/requestHandler/SettingsRequestHandler.h
   include/requestHandler/UploadRequestHandler.h
   src/HTTPd/HTTPServer.h
-    
+  include/Version.h
   ${CMAKE_BINARY_DIR}/include/config.h
 )
+set_source_files_properties(include/Version.h PROPERTIES GENERATED TRUE)
 
 IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_definitions(-DDEBUG)
