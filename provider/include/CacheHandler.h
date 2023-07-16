@@ -39,7 +39,7 @@
 //a define that has to be changed with a new version 
 //if the rendering was adapted - whenever it is changed,
 //old caches will be invalidated
-#define CACHE_VERSION_IDENTIFIER 4
+#define CACHE_VERSION_IDENTIFIER 5
 
 class CacheEntry : public RefCount{
 public:
