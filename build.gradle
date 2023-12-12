@@ -261,6 +261,10 @@ abstract class MyNpm extends NpmTask{
 project(":gui") {
     apply plugin: 'com.github.node-gradle.node'
     
+    node{
+	download = true
+	version = "16.20.2"
+    }
     task viewerRelease(type: MyNpm) {
         subDir = "release"
         args = ["run", "release"]
