@@ -24,7 +24,7 @@
  ***************************************************************************
  *
  */
-#include <wx-3.0/wx/arrimpl.cpp>
+#include <wx/arrimpl.cpp>
 
 #include "ChartList.h"
 #include <wx/arrimpl.cpp> 

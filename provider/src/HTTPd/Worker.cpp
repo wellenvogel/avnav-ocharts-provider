@@ -24,10 +24,10 @@
  ***************************************************************************
  *
  */
-#include <wx-3.0/wx/tokenzr.h>
-#include <wx-3.0/wx/uri.h>
+#include <wx/tokenzr.h>
+#include <wx/uri.h>
 #include <vector>
-#include <wx-3.0/wx/utils.h>
+#include <wx/utils.h>
 
 #include "Worker.h"
 #include "Logger.h"
