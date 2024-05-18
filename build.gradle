@@ -580,23 +580,12 @@ task cleanGui(type: Delete){
     delete "gui/build"
 }
 
-task uploadAccessDaily(type: UploadHtAccess){
-    sourceName="daily.htaccess"
-    baseDir=uploadDailyDir
-    version=project.avnavVersion
-}
-task uploadAccessRelease(type: UploadHtAccess){
-    sourceName="release.htaccess"
-    baseDir=uploadReleaseDir
-    version=project.avnavVersion
-}
-
 def packageList=fileTree("build/distributions",{
     include "*${project.avnavVersion}*.deb"
 })
 
 task uploadDaily(type: UploadTask){
-    dependsOn cleanGui,packages, uploadAccessDaily
+    dependsOn cleanGui,packages
     inputFiles=packageList
     baseDir="$uploadDailyDir/${project.avnavVersion}"
 
@@ -630,7 +619,7 @@ task uploadDailyTest(type: UploadSftp){
 
 
 task uploadRelease(type: UploadTask){
-    dependsOn testGit, cleanGui,packages, uploadAccessRelease
+    dependsOn testGit, cleanGui,packages
     inputFiles=packageList
     baseDir="$uploadReleaseDir/${project.avnavVersion}"
 }
