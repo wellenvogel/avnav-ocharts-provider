@@ -627,10 +627,17 @@ class Plugin:
       host=remoteHost
     self.baseUrl="http://%s:%d/list"%(host,port)
     self.api.registerChartProvider(self.listCharts)
-    if remote:
-      self.api.registerUserApp("http://%s:%d/static/index.html"%(remoteHost,port),"gui/icon.png")
-    else:
-      self.api.registerUserApp("http://$HOST:%d/static/index.html"%port,"gui/icon.png")
+    appUrl="http://%s:%d/static/index.html"%(remoteHost,port) if remote else "http://$HOST:%d/static/index.html"%port
+    icon="gui/icon.png"
+    registered=False
+    if (self.api.getAvNavVersion() >= 20260606):
+      try:
+        self.api.registerUserApp(appUrl,icon,shortText='OCharts',longText='Ocharts',page='chartspage',name='ui')
+        registered=True
+      except:
+        pass
+    if not registered:
+      self.api.registerUserApp(appUrl,icon)
     reported=False
     errorReported=False
     self.api.setStatus("STARTED", "provider started with pid %d, connecting at %s" %(self.providerPid,self.baseUrl))
